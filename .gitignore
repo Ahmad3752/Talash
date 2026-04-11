@@ -53,3 +53,10 @@ postgres_data/
 
 # Logs
 *.log
+
+# Local project notes
+simplify.md
+
+# Frontend
+node_modules/
+talash/frontend/dist/

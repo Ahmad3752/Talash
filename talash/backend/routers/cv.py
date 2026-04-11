@@ -3,11 +3,12 @@ import shutil
 import tempfile
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from sqlalchemy.orm import selectinload
 
 from db_connect import get_session
 from db_models import Candidate
 from graph import app as graph_app
-from schemas import CandidateSummaryResponse, UploadSummaryResponse
+from schemas import CandidateResponse, UploadSummaryResponse
 
 
 router = APIRouter()
@@ -61,15 +62,26 @@ async def upload_cv(file: UploadFile = File(...)):
             Path(temp_path).unlink(missing_ok=True)
 
 
-@router.get("/candidates", response_model=list[CandidateSummaryResponse])
+@router.get("/candidates", response_model=list[CandidateResponse])
 def list_candidates():
     session = get_session()
     try:
-        candidates = session.query(Candidate).all()
-        output: list[CandidateSummaryResponse] = []
+        candidates = (
+            session.query(Candidate)
+            .options(
+                selectinload(Candidate.education),
+                selectinload(Candidate.experience),
+                selectinload(Candidate.publications),
+                selectinload(Candidate.skills),
+                selectinload(Candidate.books),
+                selectinload(Candidate.patents),
+            )
+            .all()
+        )
+        output: list[CandidateResponse] = []
         for c in candidates:
             output.append(
-                CandidateSummaryResponse(
+                CandidateResponse(
                     id=c.id,
                     name=c.name,
                     email=c.email,
@@ -77,6 +89,48 @@ def list_candidates():
                     education_count=len(c.education),
                     experience_count=len(c.experience),
                     publications_count=len(c.publications),
+                    education=[
+                        {
+                            "degree": e.degree,
+                            "field": e.field,
+                            "institution": e.institution,
+                            "start_year": e.start_year,
+                            "end_year": e.end_year,
+                        }
+                        for e in c.education
+                    ],
+                    experience=[
+                        {
+                            "company": e.company,
+                            "role": e.role,
+                            "employment_type": e.employment_type,
+                            "start_date": e.start_date,
+                            "end_date": e.end_date,
+                        }
+                        for e in c.experience
+                    ],
+                    publications=[
+                        {
+                            "type": p.type.value if p.type else None,
+                            "title": p.title,
+                            "venue": p.venue,
+                            "year": p.year,
+                        }
+                        for p in c.publications
+                    ],
+                    skills=[{"skill_name": s.skill_name} for s in c.skills],
+                    books=[
+                        {"title": b.title, "publisher": b.publisher, "year": b.year}
+                        for b in c.books
+                    ],
+                    patents=[
+                        {
+                            "patent_number": p.patent_number,
+                            "title": p.title,
+                            "year": p.year,
+                        }
+                        for p in c.patents
+                    ],
                 )
             )
         return output
