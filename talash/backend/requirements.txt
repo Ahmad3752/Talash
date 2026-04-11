@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+sqlalchemy
+psycopg2-binary
+langgraph
+langchain-openai
+langchain-anthropic
+pymupdf
+pydantic
+python-dotenv
+pandas
+openpyxl
