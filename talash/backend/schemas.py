@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class UploadSummaryResponse(BaseModel):
@@ -10,6 +10,7 @@ class UploadSummaryResponse(BaseModel):
 
 class CandidateSummaryResponse(BaseModel):
     id: int
+    candidate_id: str
     name: str | None = None
     email: str | None = None
     phone: str | None = None
@@ -20,10 +21,12 @@ class CandidateSummaryResponse(BaseModel):
 
 class EducationItem(BaseModel):
     degree: str | None = None
+    degree_level: str | None = None
     field: str | None = None
     institution: str | None = None
     start_year: int | None = None
     end_year: int | None = None
+    normalized_percentage: float | None = None
 
 
 class ExperienceItem(BaseModel):
@@ -43,6 +46,7 @@ class PublicationItem(BaseModel):
 
 class SkillItem(BaseModel):
     skill_name: str | None = None
+    inferred: bool = False
 
 
 class BookItem(BaseModel):
@@ -58,9 +62,9 @@ class PatentItem(BaseModel):
 
 
 class CandidateResponse(CandidateSummaryResponse):
-    education: list[EducationItem] = []
-    experience: list[ExperienceItem] = []
-    publications: list[PublicationItem] = []
-    skills: list[SkillItem] = []
-    books: list[BookItem] = []
-    patents: list[PatentItem] = []
+    education: list[EducationItem] = Field(default_factory=list)
+    experience: list[ExperienceItem] = Field(default_factory=list)
+    publications: list[PublicationItem] = Field(default_factory=list)
+    skills: list[SkillItem] = Field(default_factory=list)
+    books: list[BookItem] = Field(default_factory=list)
+    patents: list[PatentItem] = Field(default_factory=list)

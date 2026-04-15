@@ -9,6 +9,15 @@ from db_models import (
     Skill,
     SupervisedStudent,
 )
+from sqlalchemy import func
+from uuid import uuid4
+
+
+def _normalize_name(name: str | None) -> str | None:
+    if not name:
+        return None
+    normalized = " ".join(name.strip().split()).lower()
+    return normalized or None
 
 
 def database_storage(state: dict) -> dict:
@@ -25,30 +34,58 @@ def database_storage(state: dict) -> dict:
                 continue
 
             info = data["personal_info"]
+            source_label = data.get("_candidate_id")
+            normalized_name = _normalize_name(info.get("name"))
 
-            existing = None
-            if info.get("email"):
-                existing = session.query(Candidate).filter_by(email=info["email"]).first()
-
-            if existing:
-                candidate = existing
-                print(f"Updating existing candidate: {info.get('name')}")
-            else:
-                candidate = Candidate(
-                    name=info.get("name"),
-                    email=info.get("email"),
-                    phone=info.get("phone"),
-                    source_pdf=data.get("_candidate_id"),
+            if normalized_name:
+                duplicate = (
+                    session.query(Candidate)
+                    .filter(func.lower(func.trim(Candidate.name)) == normalized_name)
+                    .first()
                 )
-                session.add(candidate)
-                session.flush()
-                print(f"New candidate: {info.get('name')} -> id={candidate.id}")
+                if duplicate:
+                    print(
+                        f"Skipping duplicate candidate by name: {info.get('name')} "
+                        f"(existing id={duplicate.id}, candidate_id={duplicate.candidate_id})"
+                    )
+                    continue
+
+            # Always create a new candidate row to avoid cross-upload overwrites
+            # when parser labels repeat (e.g., cv_1 appears in many uploads).
+            candidate = Candidate(
+                candidate_id=f"tmp_{uuid4().hex}",
+                name=info.get("name"),
+                email=info.get("email"),
+                phone=info.get("phone"),
+            )
+            session.add(candidate)
+            session.flush()
+
+            # Stable monotonic external ID: cv_1, cv_2, cv_3, ...
+            candidate.candidate_id = f"cv_{candidate.id}"
+            session.flush()
+
+            degree_level_map = {
+                "ssc": "school",
+                "hssc": "school",
+                "bs": "undergrad",
+                "bsc": "undergrad",
+                "be": "undergrad",
+                "ms": "postgrad",
+                "msc": "postgrad",
+                "mphil": "postgrad",
+                "mba": "postgrad",
+                "phd": "doctorate",
+            }
 
             for edu in data.get("education", []):
+                deg = (edu.get("degree") or "").lower()
+                level = degree_level_map.get(deg.split()[0] if deg else "", "other")
                 session.add(
                     Education(
                         candidate_id=candidate.id,
                         degree=edu.get("degree"),
+                        degree_level=level,
                         field=edu.get("field"),
                         institution=edu.get("institution"),
                         start_year=edu.get("start_year"),
@@ -57,6 +94,7 @@ def database_storage(state: dict) -> dict:
                         cgpa_scale=edu.get("cgpa_scale"),
                         percentage=edu.get("percentage"),
                         board=edu.get("board"),
+                        normalized_percentage=edu.get("normalized_percentage"),
                     )
                 )
 
@@ -75,13 +113,19 @@ def database_storage(state: dict) -> dict:
 
             for skill_name in data.get("skills", []):
                 if skill_name:
-                    session.add(Skill(candidate_id=candidate.id, skill_name=skill_name))
+                    session.add(
+                        Skill(
+                            candidate_id=candidate.id,
+                            skill_name=skill_name,
+                            inferred=not bool(data.get("_skills_from_cv", True)),
+                        )
+                    )
 
             for pub in data.get("publications", []):
                 session.add(
                     Publication(
                         candidate_id=candidate.id,
-                        type=pub.get("type"),
+                        pub_type=pub.get("type", "journal"),
                         title=pub.get("title"),
                         venue=pub.get("venue"),
                         issn=pub.get("issn"),
@@ -136,6 +180,10 @@ def database_storage(state: dict) -> dict:
                 )
 
             stored_ids.append(candidate.id)
+            print(
+                f"Stored candidate from {source_label} as {candidate.candidate_id} "
+                f"(db_id={candidate.id})"
+            )
 
         session.commit()
         print(f"Stored {len(stored_ids)} candidate(s) -> IDs: {stored_ids}")

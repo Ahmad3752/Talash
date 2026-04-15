@@ -83,6 +83,7 @@ def list_candidates():
             output.append(
                 CandidateResponse(
                     id=c.id,
+                    candidate_id=c.candidate_id,
                     name=c.name,
                     email=c.email,
                     phone=c.phone,
@@ -92,10 +93,12 @@ def list_candidates():
                     education=[
                         {
                             "degree": e.degree,
+                            "degree_level": e.degree_level,
                             "field": e.field,
                             "institution": e.institution,
                             "start_year": e.start_year,
                             "end_year": e.end_year,
+                            "normalized_percentage": e.normalized_percentage,
                         }
                         for e in c.education
                     ],
@@ -111,14 +114,14 @@ def list_candidates():
                     ],
                     publications=[
                         {
-                            "type": p.type.value if p.type else None,
+                            "type": p.pub_type.value if p.pub_type else None,
                             "title": p.title,
                             "venue": p.venue,
                             "year": p.year,
                         }
                         for p in c.publications
                     ],
-                    skills=[{"skill_name": s.skill_name} for s in c.skills],
+                    skills=[{"skill_name": s.skill_name, "inferred": bool(s.inferred)} for s in c.skills],
                     books=[
                         {"title": b.title, "publisher": b.publisher, "year": b.year}
                         for b in c.books
