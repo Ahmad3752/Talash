@@ -10,7 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from db_connect import init_db
-from routers import cv
+from routers import cv, publications
 
 
 app = FastAPI(title="TALASH API")
@@ -23,3 +23,4 @@ app.add_middleware(
 
 init_db()
 app.include_router(cv.router, prefix="/api/cv")
+app.include_router(publications.router, prefix="/api/publications")

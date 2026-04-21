@@ -7,6 +7,7 @@ function CandidatesPage() {
   const [candidates, setCandidates] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [isLoadingCandidate, setIsLoadingCandidate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -26,6 +27,23 @@ function CandidatesPage() {
   useEffect(() => {
     loadCandidates();
   }, []);
+
+  const openCandidateDetail = async (candidateSummary) => {
+    if (!candidateSummary?.candidate_id) {
+      return;
+    }
+
+    setIsLoadingCandidate(true);
+    setError('');
+    try {
+      const response = await client.get(`/api/cv/candidates/${candidateSummary.candidate_id}`);
+      setSelectedCandidate(response.data || null);
+    } catch {
+      setError('Could not load candidate details. Please try again.');
+    } finally {
+      setIsLoadingCandidate(false);
+    }
+  };
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter((candidate) =>
@@ -53,8 +71,9 @@ function CandidatesPage() {
       {error && <div className="card error-card">{error}</div>}
 
       {isLoading ? <div className="loader-text">Loading candidates...</div> : null}
+      {isLoadingCandidate ? <div className="loader-text">Loading full candidate profile...</div> : null}
 
-      <CandidateTable candidates={filteredCandidates} onSelectCandidate={setSelectedCandidate} />
+      <CandidateTable candidates={filteredCandidates} onSelectCandidate={openCandidateDetail} />
 
       <CandidateDetail candidate={selectedCandidate} onClose={() => setSelectedCandidate(null)} />
     </section>

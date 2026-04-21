@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field, field_validator
 
+from services.publication_enricher import enrich_publications, infer_authorship_roles
+
 
 ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(ENV_PATH)
@@ -205,7 +207,7 @@ llm = ChatOpenAI(
 )
 structured_llm = llm.with_structured_output(CVExtraction)
 
-MAX_INFERRED_SKILLS = 15
+MAX_INFERRED_SKILLS = 5
 
 
 EXTRACTION_PROMPT = """
@@ -295,7 +297,7 @@ STRICT RULES:
 - Use null for every missing/unknown field - NEVER use "N/A", "Present", ""
 - SSC and HSSC go inside the "education" list with degree="SSC" or degree="HSSC"
 - ALL publications (journals + conferences) go in the single "publications" list
-- Return a comprehensive skills list from the CV, with up to 15 unique items
+- Return at most 5 unique skills when clearly present in CV text
 - Prioritize technical/research skills over generic soft skills
 - Dates MUST be "YYYY-MM": convert "Sep-2017" to "2017-09"
 - If end_date is "Present" or "current" use null
@@ -330,7 +332,7 @@ def clean_nulls(obj):
     return obj
 
 
-def normalize_education(education_list: list) -> list:
+"""def normalize_education(education_list: list) -> list:
     for edu in education_list:
         cgpa = edu.get("cgpa")
         scale = edu.get("cgpa_scale")
@@ -346,6 +348,39 @@ def normalize_education(education_list: list) -> list:
         else:
             edu["normalized_percentage"] = None
 
+    return education_list"""
+def normalize_education(education_list: list) -> list:
+    """
+    Adds normalized_percentage to every education record.
+    - If percentage already exists → use it directly
+    - If cgpa exists → infer scale if missing, then convert to percentage
+    - GUARD: if cgpa > 100, it's probably already a percentage stored as cgpa
+    """
+    for edu in education_list:
+        cgpa  = edu.get("cgpa")
+        scale = edu.get("cgpa_scale")
+        pct   = edu.get("percentage")
+        
+        if pct is not None:
+            # Percentage already given
+            edu["normalized_percentage"] = round(float(pct), 2)
+        elif cgpa is not None:
+            # CGPA given — but guard against data entry errors
+            cgpa_float = float(cgpa)
+            
+            # If cgpa > 100, it's actually a percentage, not a CGPA
+            if cgpa_float > 100:
+                edu["normalized_percentage"] = round(cgpa_float, 2)
+                edu["cgpa"] = None  # clear the bad cgpa
+                print(f"   ⚠️  CGPA {cgpa_float} > 100 → treated as percentage")
+            else:
+                # Real CGPA — infer scale if missing
+                if scale is None:
+                    scale = 4.0 if cgpa_float <= 4.0 else 5.0
+                    edu["cgpa_scale"] = scale
+                edu["normalized_percentage"] = round((cgpa_float / float(scale)) * 100, 2)
+        else:
+            edu["normalized_percentage"] = None
     return education_list
 
 
@@ -368,6 +403,7 @@ Example: ["Wireless Sensor Networks", "Deep Learning", "Python", "Research", "Te
 
 def infer_skills_if_missing(extracted: dict) -> dict:
     if extracted.get("skills"):
+        print(f"[skills] extracted from CV: {len(extracted.get('skills', []))}")
         extracted["_skills_from_cv"] = True
         return extracted
 
@@ -375,6 +411,7 @@ def infer_skills_if_missing(extracted: dict) -> dict:
     pub_titles = [p.get("title", "") for p in extracted.get("publications", []) if p.get("title")][:8]
 
     if not roles and not pub_titles:
+        print("[skills] no experience/publication context, skipping inference")
         extracted["_skills_from_cv"] = True
         return extracted
 
@@ -391,6 +428,7 @@ def infer_skills_if_missing(extracted: dict) -> dict:
         inferred = json.loads(raw)
         if isinstance(inferred, list):
             extracted["skills"] = [s for s in inferred if isinstance(s, str)][:MAX_INFERRED_SKILLS]
+            print(f"[skills] inferred {len(extracted['skills'])} skill(s)")
         else:
             extracted["skills"] = []
     except Exception as e:
@@ -398,6 +436,27 @@ def infer_skills_if_missing(extracted: dict) -> dict:
         extracted["skills"] = []
 
     return extracted
+
+
+def _has_explicit_skills_section(cv_text: str) -> bool:
+    if not cv_text:
+        return False
+    return bool(
+        re.search(
+            r"(?im)^\s*(skills|technical\s+skills|core\s+skills|competencies|expertise)\s*[:\-]?\s*$",
+            cv_text,
+        )
+    )
+
+
+def normalize_school_education_fields(education_list: list) -> list:
+    for edu in education_list or []:
+        degree = (edu.get("degree") or "").strip().lower()
+        if degree in {"ssc", "hssc", "matric", "intermediate"}:
+            if not edu.get("board") and edu.get("institution"):
+                edu["board"] = edu.get("institution")
+                edu["institution"] = None
+    return education_list
 
 
 def infer_skills_from_text(cv_text: str, max_items: int = MAX_INFERRED_SKILLS) -> list[str]:
@@ -533,11 +592,31 @@ def llm_extractor(state: dict) -> dict:
             extracted = clean_nulls(extracted)
             if extracted.get("education"):
                 extracted["education"] = normalize_education(extracted["education"])
+
+            if not _has_explicit_skills_section(text):
+                if extracted.get("skills"):
+                    print("[skills] no explicit skills section detected, switching to inferred skills")
+                extracted["skills"] = []
+
             extracted = infer_skills_if_missing(extracted)
             if not extracted.get("skills"):
                 extracted["skills"] = infer_skills_from_text(text)
                 if extracted["skills"]:
                     extracted["_skills_from_cv"] = False
+                    print(f"[skills] fallback inferred {len(extracted['skills'])} skill(s)")
+
+            if extracted.get("education"):
+                extracted["education"] = normalize_school_education_fields(extracted["education"])
+
+            if extracted.get("publications"):
+                print(f"[publications] running CrossRef enrichment for {len(extracted['publications'])} publication(s)")
+                extracted["publications"] = enrich_publications(extracted["publications"])
+                extracted["publications"] = infer_authorship_roles(
+                    extracted["publications"],
+                    extracted.get("personal_info", {}).get("name", ""),
+                )
+                print("[publications] enrichment + authorship inference complete")
+
             extracted["_candidate_id"] = candidate_id
             all_results.append(extracted)
         except Exception as e:

@@ -35,7 +35,7 @@ class Candidate(Base):
     __tablename__ = "candidates"
 
     id              = Column(Integer, primary_key=True, autoincrement=True)
-    candidate_id    = Column(String, unique=True, nullable=False)  # e.g. "cv_1"
+    candidate_id    = Column(String, unique=True, nullable=False)
     name            = Column(String)
     email           = Column(String)
     phone           = Column(String)
@@ -56,17 +56,17 @@ class Education(Base):
     id                    = Column(Integer, primary_key=True, autoincrement=True)
     candidate_id          = Column(Integer, ForeignKey("candidates.id"), nullable=False)
 
-    degree                = Column(String)   # "PhD", "MS", "BS", "HSSC", "SSC"
-    degree_level          = Column(String)   # "school", "undergrad", "postgrad", "doctorate"
-    field                 = Column(String)   # specialization
+    degree                = Column(String)
+    degree_level          = Column(String)
+    field                 = Column(String)
     institution           = Column(String)
-    board                 = Column(String)   # for SSC/HSSC only
+    board                 = Column(String)
     start_year            = Column(Integer)
     end_year              = Column(Integer)
     cgpa                  = Column(Float)
-    cgpa_scale            = Column(Float)    # 4.0 or 5.0
-    percentage            = Column(Float)    # original percentage if given
-    normalized_percentage = Column(Float)    # always computed — used for scoring
+    cgpa_scale            = Column(Float)
+    percentage            = Column(Float)
+    normalized_percentage = Column(Float)
 
     candidate = relationship("Candidate", back_populates="education")
 
@@ -81,8 +81,8 @@ class Experience(Base):
     company         = Column(String)
     role            = Column(String)
     employment_type = Column(String)
-    start_date      = Column(String)   # stored as "YYYY-MM"
-    end_date        = Column(String)   # stored as "YYYY-MM" or null
+    start_date      = Column(String)
+    end_date        = Column(String)
     description     = Column(Text)
 
     candidate = relationship("Candidate", back_populates="experience")
@@ -95,7 +95,7 @@ class Skill(Base):
     id           = Column(Integer, primary_key=True, autoincrement=True)
     candidate_id = Column(Integer, ForeignKey("candidates.id"), nullable=False)
     skill_name   = Column(String)
-    inferred     = Column(Boolean, default=False)  # True if LLM-inferred, not from CV
+    inferred     = Column(Boolean, default=False)
 
     candidate = relationship("Candidate", back_populates="skills")
 
@@ -107,23 +107,31 @@ class Publication(Base):
     id               = Column(Integer, primary_key=True, autoincrement=True)
     candidate_id     = Column(Integer, ForeignKey("candidates.id"), nullable=False)
 
-    pub_type         = Column(SAEnum(PublicationTypeEnum))   # "journal" or "conference"
+    pub_type         = Column(SAEnum(PublicationTypeEnum))
     title            = Column(Text)
-    venue            = Column(String)    # journal name OR conference name
+    venue            = Column(String)
     issn             = Column(String)
     year             = Column(Integer)
-    authors          = Column(Text)      # stored as comma-separated string
+    authors          = Column(Text)
     authorship_role  = Column(SAEnum(AuthorshipRoleEnum))
 
-    # Journal-specific
-    wos_indexed      = Column(Boolean)
-    scopus_indexed   = Column(Boolean)
-    quartile         = Column(String)    # "Q1", "Q2", "Q3", "Q4"
-    impact_factor    = Column(Float)
+    # Journal-specific (original + enriched)
+    wos_indexed           = Column(Boolean)
+    scopus_indexed        = Column(Boolean)
+    quartile              = Column(String)
+    impact_factor         = Column(Float)
 
-    # Conference-specific
-    core_rank        = Column(String)    # "A*", "A", "B", "C"
-    indexed_in       = Column(String)    # "IEEE", "Scopus", "ACM", "Springer"
+    # Conference-specific (original + enriched)
+    core_rank             = Column(String)
+    indexed_in            = Column(String)
+
+    # ── NEW: CrossRef enriched fields ─────────────────────────────────────
+    doi                   = Column(String)   # e.g. "10.1016/j.ins.2021.01.001"
+    publisher             = Column(String)   # e.g. "Elsevier", "IEEE"
+    journal_name          = Column(String)   # full journal name from CrossRef
+    conference_name       = Column(String)   # full conference name from CrossRef
+    conference_maturity   = Column(String)   # e.g. "Annual", "Biennial"
+    proceedings_publisher = Column(String)   # e.g. "ACM", "IEEE", "Springer"
 
     candidate = relationship("Candidate", back_populates="publications")
 

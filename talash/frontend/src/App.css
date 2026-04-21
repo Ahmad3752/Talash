@@ -284,6 +284,12 @@
   text-align: left;
 }
 
+.doi-link {
+  color: #2b5fb8;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
 .skills-list {
   margin: 0;
   padding-left: 18px;

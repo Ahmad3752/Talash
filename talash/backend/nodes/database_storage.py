@@ -65,7 +65,7 @@ def database_storage(state: dict) -> dict:
             candidate.candidate_id = f"cv_{candidate.id}"
             session.flush()
 
-            degree_level_map = {
+            """degree_level_map = {
                 "ssc": "school",
                 "hssc": "school",
                 "bs": "undergrad",
@@ -76,24 +76,56 @@ def database_storage(state: dict) -> dict:
                 "mphil": "postgrad",
                 "mba": "postgrad",
                 "phd": "doctorate",
+            }"""
+            degree_level_map = {
+                # School
+                "ssc": "school", "ssic": "school", "hssc": "school", 
+                "matric": "school", "intermediate": "school", "ics": "school",
+                
+                # Undergraduate
+                "bs": "undergrad", "bsc": "undergrad", "be": "undergrad",
+                "b.e": "undergrad", "b.s": "undergrad", "b.eng": "undergrad",
+                "b.tech": "undergrad", "bachelor": "undergrad",
+                "b.arch": "undergrad", "diploma": "undergrad",
+                
+                # Postgraduate
+                "ms": "postgrad", "msc": "postgrad", "mphil": "postgrad",
+                "mba": "postgrad", "m.engg": "postgrad", "m.eng": "postgrad",
+                "master": "postgrad", "m.s": "postgrad", "me": "postgrad",
+                "m.tech": "postgrad", "m.arch": "postgrad", "pgdip": "postgrad",
+                
+                # Doctorate
+                "phd": "doctorate", "ph.d": "doctorate", "d.sc": "doctorate",
+                "d.phil": "doctorate", "dphil": "doctorate",
             }
 
             for edu in data.get("education", []):
                 deg = (edu.get("degree") or "").lower()
                 level = degree_level_map.get(deg.split()[0] if deg else "", "other")
+
+                board = edu.get("board")
+                institution = edu.get("institution")
+                if level == "school" and not board and institution:
+                    board = institution
+                    institution = None
+                    print(
+                        f"[education] normalized school record: degree={edu.get('degree')} "
+                        f"board set from institution"
+                    )
+
                 session.add(
                     Education(
                         candidate_id=candidate.id,
                         degree=edu.get("degree"),
                         degree_level=level,
                         field=edu.get("field"),
-                        institution=edu.get("institution"),
+                        institution=institution,
                         start_year=edu.get("start_year"),
                         end_year=edu.get("end_year"),
                         cgpa=edu.get("cgpa"),
                         cgpa_scale=edu.get("cgpa_scale"),
                         percentage=edu.get("percentage"),
-                        board=edu.get("board"),
+                        board=board,
                         normalized_percentage=edu.get("normalized_percentage"),
                     )
                 )
@@ -113,13 +145,18 @@ def database_storage(state: dict) -> dict:
 
             for skill_name in data.get("skills", []):
                 if skill_name:
+                    inferred_flag = not bool(data.get("_skills_from_cv", True))
                     session.add(
                         Skill(
                             candidate_id=candidate.id,
                             skill_name=skill_name,
-                            inferred=not bool(data.get("_skills_from_cv", True)),
+                            inferred=inferred_flag,
                         )
                     )
+            print(
+                f"[skills] stored {len(data.get('skills', []))} skill(s), "
+                f"_skills_from_cv={data.get('_skills_from_cv', True)}"
+            )
 
             for pub in data.get("publications", []):
                 session.add(
@@ -132,6 +169,12 @@ def database_storage(state: dict) -> dict:
                         year=pub.get("year"),
                         authors=", ".join(pub.get("authors", [])) or None,
                         authorship_role=pub.get("authorship_role"),
+                        doi=pub.get("doi"),
+                        publisher=pub.get("publisher"),
+                        journal_name=pub.get("journal_name"),
+                        conference_name=pub.get("conference_name"),
+                        conference_maturity=pub.get("conference_maturity"),
+                        proceedings_publisher=pub.get("proceedings_publisher"),
                         wos_indexed=pub.get("wos_indexed"),
                         scopus_indexed=pub.get("scopus_indexed"),
                         quartile=pub.get("quartile"),
