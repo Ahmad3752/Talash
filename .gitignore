@@ -61,3 +61,5 @@ frontend_simplify.md
 # Frontend
 node_modules/
 talash/frontend/dist/
+
+datasets/enriched_final1.json
