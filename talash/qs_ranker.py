@@ -8,7 +8,7 @@ QS_CSV_PATH = r'C:\Projects\Talash\QS World University Rankings 2025 (Top global
 
 @dataclass
 class InstitutionScore:
-    score: int        # 4–20
+    score: int        # 420
     tier: int         # 1, 2, or 3
     method: str       # "qs_matrix" or "llm_fallback"
     reason: str
@@ -16,13 +16,13 @@ class InstitutionScore:
 
 class InstitutionQualityScorer:
     """
-    Scores a university on a 4–20 scale using:
-      Step 1 → QS Rankings CSV (fuzzy match)
-      Step 2 → LLM fallback (if not found in CSV)
+    Scores a university on a 420 scale using:
+      Step 1  QS Rankings CSV (fuzzy match)
+      Step 2  LLM fallback (if not found in CSV)
     """
 
-    TIER1_SCORE = 18   # rank ≤ 500
-    TIER2_SCORE = 12   # rank 501–1000
+    TIER1_SCORE = 18   # rank  500
+    TIER2_SCORE = 12   # rank 5011000
     TIER3_SCORE = 6    # rank 1001+
 
     def __init__(self, llm_caller=None):
@@ -34,9 +34,9 @@ class InstitutionQualityScorer:
         self.llm_caller = llm_caller
         self._load_qs_data()
 
-    # ──────────────────────────────────────────────
+    # 
     # Data Loading
-    # ──────────────────────────────────────────────
+    # 
 
     def _load_qs_data(self):
         try:
@@ -47,12 +47,12 @@ class InstitutionQualityScorer:
             print(f"[InstitutionQualityScorer] Warning: Could not load QS CSV: {e}")
             self._qs_df = None
 
-    # ──────────────────────────────────────────────
+    # 
     # Public Method
-    # ──────────────────────────────────────────────
+    # 
 
     def score(self, institution_name: str) -> int:
-        """Main entry point. Returns score as int (4–20)."""
+        """Main entry point. Returns score as int (420)."""
         result = self._score_full(institution_name)
         return result.score
 
@@ -60,9 +60,9 @@ class InstitutionQualityScorer:
         """Returns full InstitutionScore dataclass."""
         return self._score_full(institution_name)
 
-    # ──────────────────────────────────────────────
+    # 
     # Step 1: QS Matrix
-    # ──────────────────────────────────────────────
+    # 
 
     def _score_full(self, institution_name: str) -> InstitutionScore:
         try:
@@ -80,7 +80,7 @@ class InstitutionQualityScorer:
             return InstitutionScore(
                 score=6, tier=3,
                 method="default_fallback",
-                reason="Both QS matrix and LLM failed — defaulted to Tier 3"
+                reason="Both QS matrix and LLM failed  defaulted to Tier 3"
             )
 
     def _try_qs_matrix(self, institution_name: str) -> Optional[InstitutionScore]:
@@ -104,7 +104,7 @@ class InstitutionQualityScorer:
             score=score,
             tier=tier,
             method="qs_matrix",
-            reason=f"QS 2025 rank {rank} → Tier {tier} | Matched: {matched_name}"
+            reason=f"QS 2025 rank {rank}  Tier {tier} | Matched: {matched_name}"
         )
 
     def _fuzzy_match(self, normalized_input: str) -> Optional[dict]:
@@ -125,7 +125,7 @@ class InstitutionQualityScorer:
         if not candidates.empty:
             return candidates.iloc[0].to_dict()
 
-        # Match 3: difflib ratio ≥ 0.75
+        # Match 3: difflib ratio  0.75
         qs_names = self._qs_df['_normalized'].tolist()
         matches = difflib.get_close_matches(normalized_input, qs_names, n=1, cutoff=0.75)
         if matches:
@@ -136,9 +136,9 @@ class InstitutionQualityScorer:
         return None
 
     def _parse_rank(self, rank_str: str) -> Optional[int]:
-        """Parses rank strings like '=401', '1001-1200', '1501+' → int"""
+        """Parses rank strings like '=401', '1001-1200', '1501+'  int"""
         rank_str = rank_str.strip().replace('=', '').replace('+', '')
-        # Range like "1001-1200" → take upper bound
+        # Range like "1001-1200"  take upper bound
         if '-' in rank_str:
             try:
                 return int(rank_str.split('-')[-1])
@@ -157,16 +157,16 @@ class InstitutionQualityScorer:
         else:
             return self.TIER3_SCORE, 3
 
-    # ──────────────────────────────────────────────
+    # 
     # Step 2: LLM Fallback
-    # ──────────────────────────────────────────────
+    # 
 
     def _try_llm_fallback(self, institution_name: str) -> InstitutionScore:
         if self.llm_caller is None:
             return InstitutionScore(
                 score=6, tier=3,
                 method="llm_unavailable",
-                reason="No LLM caller provided — defaulted to Tier 3"
+                reason="No LLM caller provided  defaulted to Tier 3"
             )
 
         system_prompt = (
@@ -211,12 +211,12 @@ Respond ONLY with this exact JSON (no markdown, no extra text):
             return InstitutionScore(
                 score=6, tier=3,
                 method="llm_parse_error",
-                reason="LLM response could not be parsed — defaulted to Tier 3"
+                reason="LLM response could not be parsed  defaulted to Tier 3"
             )
 
-    # ──────────────────────────────────────────────
+    # 
     # Utility
-    # ──────────────────────────────────────────────
+    # 
 
     @staticmethod
     def _normalize(name: str) -> str:
