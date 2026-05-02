@@ -16,6 +16,7 @@ import PublicationCard from '../components/PublicationCard';
 import SkeletonLoader from '../components/SkeletonLoader';
 import ScoreCard from '../components/ScoreCard';
 import BadgeFlag from '../components/BadgeFlag';
+import SkillsTab from '../components/SkillsTab';
 
 const CandidateDetailPage = () => {
   const { id } = useParams();
@@ -79,30 +80,30 @@ const CandidateDetailPage = () => {
           <div className="space-y-8 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Educational History</h4>
+                <h4 className="text-sm font-mono uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>Educational History</h4>
                 {candidate.education?.length > 0 ? (
                   <div className="space-y-4">
                     {candidate.education.map((edu, idx) => (
                       <div key={idx} className="glass-card p-4">
-                        <div className="font-bold text-slate-200">{edu.degree}</div>
+                        <div className="font-bold" style={{ color: 'var(--text-primary)' }}>{edu.degree}</div>
                         <div className="text-sm text-brand-teal">{edu.institution}</div>
-                        <div className="text-xs text-slate-500 mt-1">{edu.year} • GPA: {edu.gpa || 'N/A'}</div>
+                        <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{edu.year} • GPA: {edu.gpa || 'N/A'}</div>
                       </div>
                     ))}
                   </div>
-                ) : <p className="text-slate-500 italic">No education records found.</p>}
+                ) : <p className="italic" style={{ color: 'var(--text-muted)' }}>No education records found.</p>}
               </div>
               
               <div>
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Academic Scoring Breakdown</h4>
+                <h4 className="text-sm font-mono uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>Academic Scoring Breakdown</h4>
                 {eduScores && (
                   <>
                     <div className="mb-6 p-4 glass-card bg-brand-teal/5 border border-brand-teal/20 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-slate-300">Raw Score</span>
+                        <span className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>Raw Score</span>
                         <div className="flex items-center gap-2">
                           <span className="text-2xl font-black font-mono text-brand-teal">{eduScores.raw_score}</span>
-                          <span className="text-sm text-slate-500">/100</span>
+                          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>/100</span>
                           <GradeBadge grade={eduScores.grade} />
                         </div>
                       </div>
@@ -137,30 +138,30 @@ const CandidateDetailPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Work Experience</h4>
+                <h4 className="text-sm font-mono uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>Work Experience</h4>
                 {candidate.experience?.length > 0 ? (
                   <div className="space-y-4">
                     {candidate.experience.map((exp, idx) => (
                       <div key={idx} className="glass-card p-4">
-                        <div className="font-bold text-slate-200">{exp.role}</div>
+                        <div className="font-bold" style={{ color: 'var(--text-primary)' }}>{exp.role}</div>
                         <div className="text-sm text-brand-teal">{exp.company}</div>
-                        <div className="text-xs text-slate-500 mt-1">{exp.start_date} - {exp.end_date || 'Present'}</div>
+                        <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{exp.start_date} - {exp.end_date || 'Present'}</div>
                       </div>
                     ))}
                   </div>
-                ) : <p className="text-slate-500 italic">No experience records found.</p>}
+                ) : <p className="italic" style={{ color: 'var(--text-muted)' }}>No experience records found.</p>}
               </div>
 
               <div>
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Professional Scoring</h4>
+                <h4 className="text-sm font-mono uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>Professional Scoring</h4>
                 {expScores && (
                   <>
                     <div className="mb-6 p-4 glass-card bg-brand-teal/5 border border-brand-teal/20 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-slate-300">Raw Score</span>
+                        <span className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>Raw Score</span>
                         <div className="flex items-center gap-2">
                           <span className="text-2xl font-black font-mono text-brand-teal">{expScores.raw_score}</span>
-                          <span className="text-sm text-slate-500">/60</span>
+                          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>/60</span>
                           <GradeBadge grade={expScores.grade} />
                         </div>
                       </div>
@@ -192,10 +193,10 @@ const CandidateDetailPage = () => {
                           {expGaps.map((gap, idx) => (
                             <div key={idx} className="glass-card p-3 bg-amber-500/5 border border-amber-500/20">
                               <div className="flex justify-between items-start mb-1">
-                                <span className="text-sm font-mono text-slate-300">{gap.period}</span>
+                                <span className="text-sm font-mono" style={{ color: 'var(--text-secondary)' }}>{gap.period}</span>
                                 <span className="text-xs text-amber-400 font-bold">{gap.months} months</span>
                               </div>
-                              <p className="text-xs text-slate-500">
+                              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                 {gap.justified ? '✓ Justified' : '✗ Not Justified'}
                               </p>
                             </div>
@@ -227,26 +228,26 @@ const CandidateDetailPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Key Publications</h4>
+                <h4 className="text-sm font-mono uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>Key Publications</h4>
                 {candidate.publications?.length > 0 ? (
                   <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                     {candidate.publications.map((pub, idx) => (
                       <PublicationCard key={idx} pub={pub} />
                     ))}
                   </div>
-                ) : <p className="text-slate-500 italic">No publications found.</p>}
+                ) : <p className="italic" style={{ color: 'var(--text-muted)' }}>No publications found.</p>}
               </div>
 
               <div>
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Research Scoring</h4>
+                <h4 className="text-sm font-mono uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>Research Scoring</h4>
                 {resScores && (
                   <>
                     <div className="mb-6 p-4 glass-card bg-brand-teal/5 border border-brand-teal/20 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-slate-300">Raw Score</span>
+                        <span className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>Raw Score</span>
                         <div className="flex items-center gap-2">
                           <span className="text-2xl font-black font-mono text-brand-teal">{resScores.raw_score}</span>
-                          <span className="text-sm text-slate-500">/100</span>
+                          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>/100</span>
                           <GradeBadge grade={resScores.grade} />
                         </div>
                       </div>
@@ -273,7 +274,7 @@ const CandidateDetailPage = () => {
                     {resRecommendations.length > 0 && (
                       <div className="mt-6 pt-4 border-t border-white/5">
                         <h5 className="text-xs font-bold text-brand-teal uppercase mb-3">💡 Recommendations</h5>
-                        <ul className="space-y-2 text-xs text-slate-500">
+                        <ul className="space-y-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                           {resRecommendations.map((rec, idx) => (
                             <li key={idx} className="flex gap-2">
                               <span className="text-brand-teal">→</span> {rec}
@@ -291,97 +292,7 @@ const CandidateDetailPage = () => {
       }
 
       case 'skills': {
-        const skillScores = candidate.skill_alignment_scores?.[0];
-        const skillData = [
-          { name: 'Strong', value: skillScores?.strong_count || 0, color: '#00e5cc' },
-          { name: 'Partial', value: skillScores?.partial_count || 0, color: '#f59e0b' },
-          { name: 'Weak', value: skillScores?.weak_count || 0, color: '#f97316' },
-          { name: 'Unsupported', value: skillScores?.unsupported_count || 0, color: '#f43f5e' },
-        ];
-
-        return (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Skill Distribution</h4>
-                {skillScores ? (
-                  <>
-                    <div className="h-64 mb-6">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsPieChart>
-                          <Pie
-                            data={skillData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                          >
-                            {skillData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                        </RechartsPieChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-2">
-                      <BadgeFlag type="success" text={`Strong: ${skillScores.strong_count}`} />
-                      <BadgeFlag type="amber" text={`Partial: ${skillScores.partial_count}`} />
-                      <BadgeFlag type="warning" text={`Weak: ${skillScores.weak_count}`} />
-                      <BadgeFlag type="info" text={`Unsupported: ${skillScores.unsupported_count}`} />
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-slate-500 italic">Skill assessment not available.</p>
-                )}
-
-                {candidate.skills?.length > 0 && (
-                  <div className="mt-6">
-                    <h5 className="text-xs font-bold text-slate-400 uppercase mb-3">Skills Listed</h5>
-                    <div className="flex flex-wrap gap-2">
-                      {candidate.skills.map((skill, idx) => (
-                        <span 
-                          key={idx} 
-                          className={`px-3 py-1 rounded-full text-xs font-bold border ${skill.verified ? 'bg-brand-teal/10 text-brand-teal border-brand-teal/30' : 'bg-brand-amber/10 text-brand-amber border-brand-amber/30'}`}
-                        >
-                          {skill.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Skill Assessment Scoring</h4>
-                {skillScores ? (
-                  <>
-                    <div className="mb-6 p-4 glass-card bg-brand-teal/5 border border-brand-teal/20 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-slate-300">Raw Score</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl font-black font-mono text-brand-teal">{skillScores.raw_score}</span>
-                          <span className="text-sm text-slate-500">/40</span>
-                          <GradeBadge grade={skillScores.grade} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <ScoreCard label="Skill-Experience Alignment" score={skillScores.skill_experience_score} max={18} />
-                    <ScoreCard label="Skill-Publication Alignment" score={skillScores.skill_publication_score} max={12} />
-                    <ScoreCard label="Skill Consistency" score={skillScores.skill_consistency_score} max={10} />
-                  </>
-                ) : (
-                  <div className="text-center py-10">
-                    <p className="text-slate-500 italic">{skillScores?.applicability_reason || 'Skill alignment scoring not applicable.'}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
+        return <SkillsTab candidate={candidate} />;
       }
 
       case 'tvs_ccs': {
@@ -393,24 +304,24 @@ const CandidateDetailPage = () => {
           <div className="space-y-8 animate-in fade-in duration-500">
             {/* Topic Variability Section */}
             <div className="glass-card p-6">
-              <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-6">📊 Topic Variability</h4>
+              <h4 className="text-sm font-mono uppercase tracking-widest mb-6" style={{ color: 'var(--text-muted)' }}>📊 Topic Variability</h4>
               {tvsScores ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="glass-card p-3 bg-white/5">
-                      <div className="text-xs text-slate-500 uppercase mb-1">Dominant Theme</div>
+                      <div className="text-xs uppercase mb-1" style={{ color: 'var(--text-muted)' }}>Dominant Theme</div>
                       <div className="text-sm font-bold text-brand-teal truncate">{tvsScores.dominant_theme}</div>
                     </div>
                     <div className="glass-card p-3 bg-white/5">
-                      <div className="text-xs text-slate-500 uppercase mb-1">Focus Type</div>
+                      <div className="text-xs uppercase mb-1" style={{ color: 'var(--text-muted)' }}>Focus Type</div>
                       <div className="text-sm font-bold text-brand-teal">{tvsScores.focus_type}</div>
                     </div>
                     <div className="glass-card p-3 bg-white/5">
-                      <div className="text-xs text-slate-500 uppercase mb-1">Topic Trend</div>
+                      <div className="text-xs uppercase mb-1" style={{ color: 'var(--text-muted)' }}>Topic Trend</div>
                       <div className="text-sm font-bold text-brand-teal">{tvsScores.topic_trend}</div>
                     </div>
                     <div className="glass-card p-3 bg-white/5">
-                      <div className="text-xs text-slate-500 uppercase mb-1">Themes Identified</div>
+                      <div className="text-xs uppercase mb-1" style={{ color: 'var(--text-muted)' }}>Themes Identified</div>
                       <div className="text-sm font-bold text-brand-teal">{tvsScores.themes_identified}</div>
                     </div>
                   </div>
@@ -418,46 +329,46 @@ const CandidateDetailPage = () => {
                   <ScoreCard label="Research Diversity Score" score={tvsScores.diversity_score} max={10} />
                   
                   <div className="mt-4 p-4 glass-card bg-brand-teal/5 border border-brand-teal/20">
-                    <h5 className="text-xs font-bold text-slate-400 uppercase mb-2">Overall Interpretation</h5>
-                    <p className="text-sm text-slate-400">{tvsScores.overall_interpretation}</p>
+                    <h5 className="text-xs font-bold uppercase mb-2" style={{ color: 'var(--text-muted)' }}>Overall Interpretation</h5>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{tvsScores.overall_interpretation}</p>
                   </div>
                 </div>
               ) : (
-                <p className="text-slate-500 italic">Topic variability data not available.</p>
+                <p className="italic" style={{ color: 'var(--text-muted)' }}>Topic variability data not available.</p>
               )}
             </div>
 
             {/* Co-Author Analysis Section */}
             <div className="glass-card p-6">
-              <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-6">🤝 Co-Author Analysis</h4>
+              <h4 className="text-sm font-mono uppercase tracking-widest mb-6" style={{ color: 'var(--text-muted)' }}>🤝 Co-Author Analysis</h4>
               {ccScores ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="glass-card p-3 bg-white/5">
-                      <div className="text-xs text-slate-500 uppercase mb-1">Unique Co-authors</div>
+                      <div className="text-xs uppercase mb-1" style={{ color: 'var(--text-muted)' }}>Unique Co-authors</div>
                       <div className="text-lg font-bold text-brand-teal">{ccScores.unique_coauthors}</div>
                     </div>
                     <div className="glass-card p-3 bg-white/5">
-                      <div className="text-xs text-slate-500 uppercase mb-1">Total Collaborations</div>
+                      <div className="text-xs uppercase mb-1" style={{ color: 'var(--text-muted)' }}>Total Collaborations</div>
                       <div className="text-lg font-bold text-brand-teal">{ccScores.total_collaborations}</div>
                     </div>
                     <div className="glass-card p-3 bg-white/5">
-                      <div className="text-xs text-slate-500 uppercase mb-1">Solo Papers</div>
+                      <div className="text-xs uppercase mb-1" style={{ color: 'var(--text-muted)' }}>Solo Papers</div>
                       <div className="text-lg font-bold text-brand-teal">{ccScores.solo_papers}</div>
                     </div>
                     <div className="glass-card p-3 bg-white/5">
-                      <div className="text-xs text-slate-500 uppercase mb-1">Avg Authors/Paper</div>
+                      <div className="text-xs uppercase mb-1" style={{ color: 'var(--text-muted)' }}>Avg Authors/Paper</div>
                       <div className="text-lg font-bold text-brand-teal">{ccScores.avg_authors_per_paper?.toFixed(1)}</div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="glass-card p-3 bg-white/5">
-                      <div className="text-xs text-slate-500 uppercase mb-1">Collaboration Style</div>
+                      <div className="text-xs uppercase mb-1" style={{ color: 'var(--text-muted)' }}>Collaboration Style</div>
                       <div className="text-sm font-bold text-brand-teal">{ccScores.collaboration_style}</div>
                     </div>
                     <div className="glass-card p-3 bg-white/5">
-                      <div className="text-xs text-slate-500 uppercase mb-1">International</div>
+                      <div className="text-xs uppercase mb-1" style={{ color: 'var(--text-muted)' }}>International</div>
                       <BadgeFlag type={ccScores.international_flag ? 'success' : 'info'} text={ccScores.international_flag ? 'Yes' : 'No'} />
                     </div>
                   </div>
@@ -465,17 +376,17 @@ const CandidateDetailPage = () => {
                   <ScoreCard label="Network Diversity Score" score={ccScores.network_diversity_score} max={10} />
 
                   <div className="mt-4 p-4 glass-card bg-brand-teal/5 border border-brand-teal/20">
-                    <h5 className="text-xs font-bold text-slate-400 uppercase mb-2">Collaboration Interpretation</h5>
-                    <p className="text-sm text-slate-400">{ccScores.interpretation}</p>
+                    <h5 className="text-xs font-bold uppercase mb-2" style={{ color: 'var(--text-muted)' }}>Collaboration Interpretation</h5>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{ccScores.interpretation}</p>
                   </div>
 
                   {topCollabs.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-white/5">
-                      <h5 className="text-xs font-bold text-slate-400 uppercase mb-3">Top Collaborators</h5>
+                      <h5 className="text-xs font-bold uppercase mb-3" style={{ color: 'var(--text-muted)' }}>Top Collaborators</h5>
                       <div className="space-y-2">
                         {topCollabs.slice(0, 5).map((collab, idx) => (
                           <div key={idx} className="glass-card p-3 bg-white/5 flex justify-between items-center">
-                            <span className="text-sm text-slate-300">{collab.name}</span>
+                            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{collab.name}</span>
                             <span className="text-xs font-mono bg-brand-teal/10 text-brand-teal px-2 py-1 rounded">{collab.count} papers</span>
                           </div>
                         ))}
@@ -484,7 +395,7 @@ const CandidateDetailPage = () => {
                   )}
                 </div>
               ) : (
-                <p className="text-slate-500 italic">Co-author analysis data not available.</p>
+                <p className="italic" style={{ color: 'var(--text-muted)' }}>Co-author analysis data not available.</p>
               )}
             </div>
           </div>
@@ -508,7 +419,7 @@ const CandidateDetailPage = () => {
           if (g === 'GOOD') return 'bg-teal-500/20 text-teal-400 border-teal-500/30';
           if (g === 'SATISFACTORY') return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
           if (g === 'WEAK') return 'bg-red-500/20 text-red-400 border-red-500/30';
-          return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+          return 'bg-slate-500/20 text-slate-500 border-slate-500/30';
         };
 
         const getProgressBarColor = (percentage) => {
@@ -529,26 +440,26 @@ const CandidateDetailPage = () => {
             {/* A) Overall Assessment Bar */}
             <div className="glass-card p-8 bg-gradient-to-br from-brand-teal/10 to-brand-teal/5 border border-brand-teal/30">
               <h3 className="text-lg font-bold text-brand-teal mb-2">Overall CV Assessment</h3>
-              <p className="text-sm text-slate-400 mb-8">{summaryInterpretation || 'CV assessment in progress...'}</p>
+              <p className="text-sm mb-8" style={{ color: 'var(--text-secondary)' }}>{summaryInterpretation || 'CV assessment in progress...'}</p>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="glass-card p-4 bg-white/5 text-center">
                   <div className="text-3xl font-black font-mono text-brand-teal">{summary?.overall_score?.toFixed(1) || '--'}</div>
-                  <div className="text-xs text-slate-500 mt-2">Overall Score</div>
+                  <div className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Overall Score</div>
                 </div>
                 <div className="glass-card p-4 bg-white/5 text-center">
                   <div className={`inline-block px-3 py-1 rounded-full border text-sm font-bold ${getGradeColor(summary?.overall_grade)}`}>
                     {(summary?.overall_grade || 'N/A').toUpperCase()}
                   </div>
-                  <div className="text-xs text-slate-500 mt-2">Overall Grade</div>
+                  <div className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Overall Grade</div>
                 </div>
                 <div className="glass-card p-4 bg-white/5 text-center">
                   <div className="text-xl font-bold text-brand-teal">{summary?.overall_status || 'VERIFIED'}</div>
-                  <div className="text-xs text-slate-500 mt-2">Status</div>
+                  <div className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Status</div>
                 </div>
                 <div className="glass-card p-4 bg-white/5 text-center">
                   <div className="text-2xl font-bold text-brand-teal">{moduleBreakdown.length}</div>
-                  <div className="text-xs text-slate-500 mt-2">Modules</div>
+                  <div className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Modules</div>
                 </div>
               </div>
             </div>
@@ -556,7 +467,7 @@ const CandidateDetailPage = () => {
             {/* B) Module Breakdown — Score Progress Bars */}
             {moduleBreakdown.length > 0 && (
               <div className="glass-card p-6">
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-6">Module Performance Breakdown</h4>
+                <h4 className="text-sm font-mono uppercase tracking-widest mb-6" style={{ color: 'var(--text-muted)' }}>Module Performance Breakdown</h4>
                 <div className="space-y-4">
                   {moduleBreakdown.map((module, idx) => {
                     const percentage = (module.score / module.max) * 100;
@@ -564,8 +475,8 @@ const CandidateDetailPage = () => {
                       <div key={idx} className="glass-card p-4 bg-white/5 hover:bg-white/10 transition-colors">
                         <div className="flex items-center justify-between mb-3">
                           <div>
-                            <h5 className="font-bold text-slate-200">{module.name}</h5>
-                            <p className="text-xs text-slate-500">Weight: {module.weight}%</p>
+                            <h5 className="font-bold" style={{ color: 'var(--text-primary)' }}>{module.name}</h5>
+                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Weight: {module.weight}%</p>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className={`px-2 py-1 rounded-full border text-xs font-bold ${getGradeColor(module.grade)}`}>
@@ -590,7 +501,7 @@ const CandidateDetailPage = () => {
             {/* C) Per-Module Interpretation Cards */}
             {detailedBreakdown.length > 0 && (
               <div className="glass-card p-6">
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-6">Detailed Module Assessment</h4>
+                <h4 className="text-sm font-mono uppercase tracking-widest mb-6" style={{ color: 'var(--text-muted)' }}>Detailed Module Assessment</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {detailedBreakdown.map((module, idx) => {
                     const strengths = module.strengths || [];
@@ -599,14 +510,14 @@ const CandidateDetailPage = () => {
                     return (
                       <div key={idx} className="glass-card p-6 bg-white/5 border border-white/10">
                         <div className="flex items-center gap-3 mb-4">
-                          <h5 className="font-bold text-slate-200">{module.name}</h5>
+                          <h5 className="font-bold" style={{ color: 'var(--text-primary)' }}>{module.name}</h5>
                           <div className={`px-2 py-1 rounded-full border text-xs font-bold ${getGradeColor(module.grade)}`}>
                             {(module.grade || 'N/A').toUpperCase()}
                           </div>
                         </div>
 
                         {module.interpretation && (
-                          <p className="text-sm text-slate-400 mb-4">{module.interpretation}</p>
+                          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>{module.interpretation}</p>
                         )}
 
                         {strengths.length > 0 && (
@@ -614,7 +525,7 @@ const CandidateDetailPage = () => {
                             <h6 className="text-xs font-bold text-green-400 uppercase mb-2">Strengths</h6>
                             <ul className="space-y-1">
                               {strengths.map((strength, sidx) => (
-                                <li key={sidx} className="flex gap-2 items-start text-xs text-slate-300">
+                                <li key={sidx} className="flex gap-2 items-start text-xs" style={{ color: 'var(--text-secondary)' }}>
                                   <CheckCircle className="w-3 h-3 text-green-400 mt-0.5 flex-shrink-0" />
                                   <span>{strength}</span>
                                 </li>
@@ -628,7 +539,7 @@ const CandidateDetailPage = () => {
                             <h6 className="text-xs font-bold text-red-400 uppercase mb-2">Weaknesses</h6>
                             <ul className="space-y-1">
                               {weaknesses.map((weakness, widx) => (
-                                <li key={widx} className="flex gap-2 items-start text-xs text-slate-300">
+                                <li key={widx} className="flex gap-2 items-start text-xs" style={{ color: 'var(--text-secondary)' }}>
                                   <AlertCircle className="w-3 h-3 text-red-400 mt-0.5 flex-shrink-0" />
                                   <span>{weakness}</span>
                                 </li>
@@ -642,7 +553,7 @@ const CandidateDetailPage = () => {
                             <h6 className="text-xs font-bold text-brand-teal uppercase mb-2">Recommendations</h6>
                             <ul className="space-y-1">
                               {moduleRecs.map((rec, ridx) => (
-                                <li key={ridx} className="flex gap-2 items-start text-xs text-slate-300">
+                                <li key={ridx} className="flex gap-2 items-start text-xs" style={{ color: 'var(--text-secondary)' }}>
                                   <span className="text-brand-teal">→</span>
                                   <span>{rec}</span>
                                 </li>
@@ -664,9 +575,9 @@ const CandidateDetailPage = () => {
                   <h4 className="text-sm font-mono text-green-400 uppercase tracking-widest mb-4">Top Strengths</h4>
                   <ul className="space-y-3">
                     {topStrengths.map((strength, idx) => (
-                      <li key={idx} className="flex gap-3 items-start text-sm">
+                      <li key={idx} className="flex gap-3 items-start text-sm" style={{ color: 'var(--text-secondary)' }}>
                         <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-slate-300">{strength}</span>
+                        <span>{strength}</span>
                       </li>
                     ))}
                   </ul>
@@ -678,9 +589,9 @@ const CandidateDetailPage = () => {
                   <h4 className="text-sm font-mono text-red-400 uppercase tracking-widest mb-4">Top Weaknesses</h4>
                   <ul className="space-y-3">
                     {topWeaknesses.map((weakness, idx) => (
-                      <li key={idx} className="flex gap-3 items-start text-sm">
+                      <li key={idx} className="flex gap-3 items-start text-sm" style={{ color: 'var(--text-secondary)' }}>
                         <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-slate-300">{weakness}</span>
+                        <span>{weakness}</span>
                       </li>
                     ))}
                   </ul>
@@ -694,11 +605,11 @@ const CandidateDetailPage = () => {
                 <h4 className="text-sm font-mono text-blue-400 uppercase tracking-widest mb-6">Recommendations</h4>
                 <ol className="space-y-3">
                   {recommendations.map((rec, idx) => (
-                    <li key={idx} className="flex gap-4 items-start text-sm">
+                    <li key={idx} className="flex gap-4 items-start text-sm" style={{ color: 'var(--text-secondary)' }}>
                       <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-400/20 text-blue-400 font-bold text-xs flex-shrink-0">
                         {idx + 1}
                       </span>
-                      <span className="text-slate-300 pt-0.5">{rec}</span>
+                      <span className="pt-0.5">{rec}</span>
                     </li>
                   ))}
                 </ol>
@@ -708,8 +619,8 @@ const CandidateDetailPage = () => {
             {/* F) Summary Interpretation */}
             {summaryInterpretation && (
               <div className="glass-card p-6 border-l-4 border-brand-teal bg-brand-teal/5">
-                <h4 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-4">Summary Interpretation</h4>
-                <p className="text-sm text-slate-300 italic leading-relaxed">{summaryInterpretation}</p>
+                <h4 className="text-sm font-mono uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>Summary Interpretation</h4>
+                <p className="text-sm italic leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{summaryInterpretation}</p>
               </div>
             )}
           </div>
@@ -723,7 +634,7 @@ const CandidateDetailPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-6">
-      <Link to="/candidates" className="inline-flex items-center gap-2 text-slate-500 hover:text-brand-teal mb-8 transition-colors">
+      <Link to="/candidates" className="inline-flex items-center gap-2 mb-8 transition-colors" style={{ color: 'var(--text-muted)' }} onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}>
         <ArrowLeft className="w-4 h-4" /> Back to Database
       </Link>
 
@@ -737,23 +648,23 @@ const CandidateDetailPage = () => {
               {candidate.name?.charAt(0)}
             </div>
             
-            <h1 className="text-3xl mb-1">{candidate.name}</h1>
-            <div className="flex items-center justify-center gap-2 text-slate-500 text-sm mb-6">
+            <h1 className="text-3xl mb-1" style={{ color: 'var(--text-primary)' }}>{candidate.name}</h1>
+            <div className="flex items-center justify-center gap-2 text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
               <span className="bg-white/5 px-2 py-0.5 rounded font-mono text-[10px]">ID: {candidate.candidate_id || id}</span>
             </div>
 
             <div className="flex flex-col gap-3 text-left mb-8">
-              <div className="flex items-center gap-3 text-slate-400 text-sm">
+              <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <Mail className="w-4 h-4" /> {candidate.email}
               </div>
-              <div className="flex items-center gap-3 text-slate-400 text-sm">
+              <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <Phone className="w-4 h-4" /> {candidate.phone || 'No phone'}
               </div>
             </div>
 
             <div className="pt-6 border-t border-white/5 flex items-center justify-between">
               <div className="text-left">
-                <div className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-1">Overall Status</div>
+                <div className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Overall Status</div>
                 <div className="flex items-center gap-2 text-brand-green font-bold text-sm uppercase">
                   <div className="w-2 h-2 rounded-full bg-brand-green animate-pulse" /> {summary?.overall_status || 'VERIFIED'}
                 </div>
@@ -763,7 +674,7 @@ const CandidateDetailPage = () => {
           </div>
 
           <div className="glass-card p-6">
-            <h3 className="text-sm font-mono text-slate-500 uppercase tracking-widest mb-8 text-center">Score Vector</h3>
+            <h3 className="text-sm font-mono uppercase tracking-widest mb-8 text-center" style={{ color: 'var(--text-muted)' }}>Score Vector</h3>
             {!summary ? (
               <div className="text-center py-10">
                 <Clock className="w-10 h-10 text-brand-amber mx-auto mb-3 animate-spin-slow" />
@@ -774,7 +685,7 @@ const CandidateDetailPage = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                     <PolarGrid stroke="#ffffff10" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                     <Radar
                       name="Score"
                       dataKey="A"
@@ -788,7 +699,7 @@ const CandidateDetailPage = () => {
             )}
             <div className="mt-4 text-center">
               <div className="text-4xl font-black font-mono text-brand-teal">{summary?.overall_score?.toFixed(1) || '--'}</div>
-              <div className="text-[10px] text-slate-500 font-mono uppercase tracking-tighter">Weighted Aggregate</div>
+              <div className="text-[10px] font-mono uppercase tracking-tighter" style={{ color: 'var(--text-muted)' }}>Weighted Aggregate</div>
             </div>
           </div>
         </div>
@@ -805,8 +716,10 @@ const CandidateDetailPage = () => {
                     flex-1 flex items-center justify-center gap-2 py-5 text-sm font-bold transition-all
                     ${activeTab === tab.id 
                       ? 'text-brand-teal bg-brand-teal/5 border-b-2 border-brand-teal' 
-                      : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}
-                  `}
+                      : 'hover:bg-white/5'}`}
+                  style={activeTab === tab.id ? {} : { color: 'var(--text-muted)' }}
+                  onMouseEnter={(e) => { if (activeTab !== tab.id) e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                  onMouseLeave={(e) => { if (activeTab !== tab.id) e.currentTarget.style.color = 'var(--text-muted)'; }}
                 >
                   <tab.icon className="w-4 h-4" />
                   <span className="hidden md:inline">{tab.label}</span>
@@ -818,8 +731,8 @@ const CandidateDetailPage = () => {
               {!summary ? (
                 <div className="flex flex-col items-center justify-center py-40">
                   <Loader2 className="w-12 h-12 text-brand-teal animate-spin mb-4" />
-                  <h3 className="text-xl font-syne mb-2">Analyzing Profile...</h3>
-                  <p className="text-slate-500 text-center max-w-xs">Our AI engines are extracting and scoring structural data. This usually takes 30-60 seconds.</p>
+                  <h3 className="text-xl font-syne mb-2" style={{ color: 'var(--text-primary)' }}>Analyzing Profile...</h3>
+                  <p className="text-center max-w-xs" style={{ color: 'var(--text-muted)' }}>Our AI engines are extracting and scoring structural data. This usually takes 30-60 seconds.</p>
                 </div>
               ) : renderTabContent()}
             </div>

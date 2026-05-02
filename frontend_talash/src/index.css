@@ -13,14 +13,100 @@
   --font-inter: "Inter", sans-serif;
 }
 
+/* ── Dark Theme (existing values unchanged) ── */
+[data-theme="dark"] {
+  --bg-base:        #0d1117;
+  --bg-surface:     #161b22;
+  --bg-border:      #30363d;
+  --text-primary:   #ffffff;
+  --text-secondary: #8b949e;
+  --accent:         #00e5cc;
+  --accent-hover:   #00b8a4;
+  --success:        #22c55e;
+  --warning:        #f59e0b;
+  --error:          #ef4444;
+  --score-good:     #22c55e;
+  --score-sat:      #f59e0b;
+  --score-weak:     #ef4444;
+}
+
+/* ── Light Theme ── */
+[data-theme="light"] {
+  --bg-base:        #F8FAFC;
+  --bg-surface:     #FFFFFF;
+  --bg-border:      #E2E8F0;
+  --text-primary:   #0F172A;
+  --text-secondary: #475569;
+  --text-muted:     #78909C;
+  --text-disabled:  #B0BEC5;
+  --accent:         #2563EB;
+  --accent-hover:   #DBEAFE;
+  --success:        #10B981;
+  --warning:        #F59E0B;
+  --error:          #EF4444;
+  --score-good:     #10B981;
+  --score-sat:      #F59E0B;
+  --score-weak:     #EF4444;
+}
+
+/* ── Smooth transitions on theme change ── */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    box-shadow 300ms ease;
+}
+
 @layer base {
+  :root {
+    color-scheme: light;
+  }
+  
+  [data-theme="dark"] {
+    color-scheme: dark;
+  }
+  
   body {
-    @apply bg-brand-bg text-slate-100 font-inter antialiased;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    @apply font-inter antialiased;
+  }
+  
+  [data-theme="dark"] body {
     background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
     background-size: 32px 32px;
+  }
+  
+  [data-theme="light"] body {
+    background-image: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-syne font-bold;
   }
+}
+
+/* ── Theme Toggle Button ── */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--bg-border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    border-color 300ms ease,
+    color 300ms ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }

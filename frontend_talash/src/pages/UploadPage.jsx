@@ -44,8 +44,8 @@ const UploadPage = () => {
   return (
     <div className="max-w-5xl mx-auto py-10 px-6">
       <div className="mb-10">
-        <h1 className="text-4xl mb-2">Ingest Data</h1>
-        <p className="text-slate-400">Upload candidate CVs for deep structural analysis and scoring.</p>
+        <h1 className="text-4xl mb-2" style={{ color: 'var(--text-primary)' }}>Ingest Data</h1>
+        <p style={{ color: 'var(--text-secondary)' }}>Upload candidate CVs for deep structural analysis and scoring.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -67,8 +67,8 @@ const UploadPage = () => {
             <div className="w-20 h-20 bg-brand-teal/10 text-brand-teal rounded-full flex items-center justify-center mb-6">
               <Upload className="w-10 h-10" />
             </div>
-            <h2 className="text-xl mb-2 text-center">Drag & Drop PDF CV</h2>
-            <p className="text-slate-500 text-sm mb-8">or click to browse from your device</p>
+            <h2 className="text-xl mb-2 text-center" style={{ color: 'var(--text-primary)' }}>Drag & Drop PDF CV</h2>
+            <p className="text-sm mb-8" style={{ color: 'var(--text-muted)' }}>or click to browse from your device</p>
             
             <input 
               type="file" 
@@ -88,12 +88,12 @@ const UploadPage = () => {
           {file && (
             <div className="mt-6 glass-card p-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-white/5 rounded-lg text-slate-400">
+                <div className="p-3 bg-white/5 rounded-lg" style={{ color: 'var(--text-muted)' }}>
                   <File className="w-6 h-6" />
                 </div>
                 <div>
-                  <div className="font-bold">{file.name}</div>
-                  <div className="text-xs text-slate-500 font-mono">{(file.size / 1024).toFixed(1)} KB</div>
+                  <div className="font-bold" style={{ color: 'var(--text-primary)' }}>{file.name}</div>
+                  <div className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{(file.size / 1024).toFixed(1)} KB</div>
                 </div>
               </div>
               <button 
@@ -109,28 +109,28 @@ const UploadPage = () => {
 
         <div>
           <div className="glass-card p-6 h-full">
-            <h3 className="text-lg mb-6 flex items-center gap-2">
+            <h3 className="text-lg mb-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
               <CheckCircle className="w-5 h-5 text-brand-teal" />
               Batch Summary
             </h3>
             
             {!batchSummary ? (
               <div className="text-center py-10">
-                <AlertCircle className="w-12 h-12 text-slate-800 mx-auto mb-4" />
-                <p className="text-slate-600 text-sm italic">No recent uploads in this session.</p>
+                <AlertCircle className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--bg-border)' }} />
+                <p className="text-sm italic" style={{ color: 'var(--text-muted)' }}>No recent uploads in this session.</p>
               </div>
             ) : (
               <div className="space-y-6">
                 <div className="flex justify-between items-end border-b border-white/5 pb-4">
-                  <span className="text-xs text-slate-500 font-mono uppercase">Candidates</span>
+                  <span className="text-xs font-mono uppercase" style={{ color: 'var(--text-muted)' }}>Candidates</span>
                   <span className="text-2xl font-mono font-bold text-brand-teal">{batchSummary.candidates_count || 1}</span>
                 </div>
                 <div className="flex justify-between items-end border-b border-white/5 pb-4">
-                  <span className="text-xs text-slate-500 font-mono uppercase">New Profiles</span>
+                  <span className="text-xs font-mono uppercase" style={{ color: 'var(--text-muted)' }}>New Profiles</span>
                   <span className="text-2xl font-mono font-bold text-brand-green">{batchSummary.new_count || 1}</span>
                 </div>
                 <div className="flex justify-between items-end border-b border-white/5 pb-4">
-                  <span className="text-xs text-slate-500 font-mono uppercase">Existing Updated</span>
+                  <span className="text-xs font-mono uppercase" style={{ color: 'var(--text-muted)' }}>Existing Updated</span>
                   <span className="text-2xl font-mono font-bold text-brand-amber">{batchSummary.existing_count || 0}</span>
                 </div>
 

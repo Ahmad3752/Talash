@@ -60,17 +60,18 @@ const CandidatesPage = () => {
     <div className="max-w-7xl mx-auto py-10 px-6">
       <div className="flex justify-between items-end mb-10">
         <div>
-          <h1 className="text-4xl mb-2">Candidate Database</h1>
-          <p className="text-slate-400">Manage and rank your talent pool with AI-driven insights.</p>
+          <h1 className="text-4xl mb-2" style={{ color: 'var(--text-primary)' }}>Candidate Database</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Manage and rank your talent pool with AI-driven insights.</p>
         </div>
         <div className="relative w-80">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <input 
             type="text" 
             placeholder="Search candidates..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-brand-teal/50 transition-all font-inter"
+            style={{ color: 'var(--text-primary)' }}
           />
         </div>
       </div>
@@ -82,7 +83,7 @@ const CandidatesPage = () => {
 
       <div className="glass-card">
         <table className="w-full text-left border-collapse">
-          <thead className="bg-white/5 text-[10px] uppercase font-mono tracking-widest text-slate-500">
+          <thead className="bg-white/5 text-[10px] uppercase font-mono tracking-widest" style={{ color: 'var(--text-muted)' }}>
             <tr>
               <th className="px-6 py-4 font-bold">Candidate</th>
               <th className="px-6 py-4 font-bold">Status</th>
@@ -104,7 +105,7 @@ const CandidatesPage = () => {
               ))
             ) : filteredCandidates.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-6 py-10 text-center text-slate-500 italic">No candidates found.</td>
+                <td colSpan="5" className="px-6 py-10 text-center italic" style={{ color: 'var(--text-muted)' }}>No candidates found.</td>
               </tr>
             ) : filteredCandidates.map((c) => {
               const hasCV = c.cv_summary !== null;
@@ -123,8 +124,8 @@ const CandidatesPage = () => {
                       {c.name?.charAt(0)}
                     </div>
                     <div>
-                      <div className="font-bold text-slate-200">{c.name}</div>
-                      <div className="text-xs text-slate-500">{c.email}</div>
+                      <div className="font-bold" style={{ color: 'var(--text-primary)' }}>{c.name}</div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{c.email}</div>
                     </div>
                   </div>
                 </td>
@@ -134,14 +135,14 @@ const CandidatesPage = () => {
                     {status}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-right font-mono font-bold text-slate-300">
+                <td className="px-6 py-4 text-right font-mono font-bold" style={{ color: 'var(--text-secondary)' }}>
                   {c.cv_summary?.overall_score?.toFixed(1) || '--'}
                 </td>
                 <td className="px-6 py-4 text-center">
                   <GradeBadge grade={c.cv_summary?.overall_grade} />
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button className="p-2 text-slate-600 group-hover:text-brand-teal transition-colors">
+                  <button className="p-2 transition-colors" style={{ color: 'var(--text-muted)' }} onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}>
                     <ArrowUpRight className="w-5 h-5" />
                   </button>
                 </td>

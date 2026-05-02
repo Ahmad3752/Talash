@@ -18,7 +18,7 @@ const ScoreBar = ({ label, score, max = 10, reason }) => {
   return (
     <div className="mb-4">
       <div className="flex justify-between items-center mb-1">
-        <span className="text-sm font-medium text-slate-300">{label}</span>
+        <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</span>
         <span className="text-sm font-mono font-bold text-brand-teal">{score}/{max}</span>
       </div>
       <div className="h-2 bg-white/10 rounded-full overflow-hidden">
@@ -28,7 +28,7 @@ const ScoreBar = ({ label, score, max = 10, reason }) => {
         />
       </div>
       {reason && (
-        <p className="mt-1 text-xs text-slate-500 italic leading-tight">{reason}</p>
+        <p className="mt-1 text-xs italic leading-tight" style={{ color: 'var(--text-muted)' }}>{reason}</p>
       )}
     </div>
   );

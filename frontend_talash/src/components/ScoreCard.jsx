@@ -13,7 +13,7 @@ const ScoreCard = ({ label, score, max, reason, icon: Icon }) => {
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           {Icon && <Icon className="w-4 h-4 text-brand-teal" />}
-          <span className="text-sm font-medium text-slate-300">{label}</span>
+          <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</span>
         </div>
         <span className="text-sm font-mono font-bold text-brand-teal">{score}/{max}</span>
       </div>
@@ -24,7 +24,7 @@ const ScoreCard = ({ label, score, max, reason, icon: Icon }) => {
         />
       </div>
       {reason && (
-        <p className="text-xs text-slate-500 italic leading-tight">{reason}</p>
+        <p className="text-xs italic leading-tight" style={{ color: 'var(--text-muted)' }}>{reason}</p>
       )}
     </div>
   );

@@ -16,7 +16,7 @@ const PublicationCard = ({ pub }) => {
             <span className="p-1.5 bg-brand-teal/10 text-brand-teal rounded-lg">
               {getIcon(pub.pub_type)}
             </span>
-            <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-slate-500">
+            <span className="text-[10px] font-bold font-mono uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
               {pub.pub_type || 'Publication'}
             </span>
             {pub.quartile && (
@@ -25,22 +25,22 @@ const PublicationCard = ({ pub }) => {
               </span>
             )}
           </div>
-          <h4 className="text-sm font-semibold text-slate-200 leading-snug">
+          <h4 className="text-sm font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
             {pub.title || 'Untitled Publication'}
           </h4>
-          <p className="text-xs text-slate-500 mt-1 line-clamp-1">
+          <p className="text-xs mt-1 line-clamp-1" style={{ color: 'var(--text-muted)' }}>
             {pub.venue || 'N/A'} • {pub.year || 'N/A'}
           </p>
           <div className="flex flex-wrap gap-2 mt-2">
             {pub.wos_indexed && (
-              <span className="text-[10px] font-bold font-mono text-slate-400 bg-white/5 px-1 rounded">WOS</span>
+              <span className="text-[10px] font-bold font-mono" style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-border)' }} className="px-1 rounded">WOS</span>
             )}
             {pub.scopus_indexed && (
-              <span className="text-[10px] font-bold font-mono text-slate-400 bg-white/5 px-1 rounded">SCOPUS</span>
+              <span className="text-[10px] font-bold font-mono" style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-border)' }} className="px-1 rounded">SCOPUS</span>
             )}
           </div>
         </div>
-        <button className="p-2 text-slate-500 hover:text-brand-teal hover:bg-brand-teal/10 rounded-lg transition-colors">
+        <button className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }} onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.backgroundColor = 'var(--accent-hover)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.backgroundColor = 'transparent'; }}>
           <ExternalLink className="w-4 h-4" />
         </button>
       </div>
