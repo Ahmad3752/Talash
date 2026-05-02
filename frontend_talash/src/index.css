@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-bg: rgb(10 15 30);
+  --color-brand-teal: rgb(0 229 204);
+  --color-brand-green: rgb(16 185 129);
+  --color-brand-amber: rgb(245 158 11);
+  --color-brand-orange: rgb(249 115 22);
+  --color-brand-rose: rgb(244 63 94);
+  
+  --font-syne: "Syne", sans-serif;
+  --font-mono: "DM Mono", monospace;
+  --font-inter: "Inter", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-bg text-slate-100 font-inter antialiased;
+    background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+    background-size: 32px 32px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-syne font-bold;
+  }
+}

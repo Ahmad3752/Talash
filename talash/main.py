@@ -251,6 +251,9 @@ class ResearchScoreSchema(BaseModel):
     total_patents: Optional[int] = None
     total_supervised_students: Optional[int] = None
     created_at: Optional[datetime] = None
+    reasons: Optional[str] = None  # JSON
+    warnings: Optional[str] = None  # JSON list
+    recommendations: Optional[str] = None  # JSON list
 
     class Config:
         from_attributes = True
@@ -273,6 +276,12 @@ class ProfessionalExperienceScoreSchema(BaseModel):
     seniority_trend: Optional[str] = None
     domain_continuity: Optional[str] = None
     created_at: Optional[datetime] = None
+    gaps: Optional[str] = None  # JSON
+    job_overlaps: Optional[str] = None  # JSON
+    edu_overlaps: Optional[str] = None  # JSON
+    flags: Optional[str] = None  # JSON
+    seniority_trajectory: Optional[str] = None  # JSON
+    career_notes: Optional[str] = None  # JSON
 
     class Config:
         from_attributes = True
@@ -282,11 +291,13 @@ class ProfessionalExperienceScoreSchema(BaseModel):
 class SkillAlignmentScoreSchema(BaseModel):
     id: int
     applicable: Optional[bool] = None
+    applicability_reason: Optional[str] = None
     skill_experience_score: Optional[float] = None
     skill_publication_score: Optional[float] = None
     skill_consistency_score: Optional[float] = None
     raw_score: Optional[float] = None
     grade: Optional[str] = None
+    skill_details: Optional[str] = None  # JSON
     total_skills_evaluated: Optional[int] = None
     strong_count: Optional[int] = None
     partial_count: Optional[int] = None
@@ -302,12 +313,19 @@ class SkillAlignmentScoreSchema(BaseModel):
 class TopicVariabilityScoreSchema(BaseModel):
     id: int
     applicable: Optional[bool] = None
+    reason: Optional[str] = None
     dominant_theme: Optional[str] = None
     diversity_score: Optional[float] = None
     focus_type: Optional[str] = None
     topic_trend: Optional[str] = None
+    trend_explanation: Optional[str] = None
+    overall_interpretation: Optional[str] = None
+    themes: Optional[str] = None  # JSON
     total_publications: Optional[int] = None
     themes_identified: Optional[int] = None
+    id_coverage_ok: Optional[bool] = None
+    missing_pub_ids: Optional[str] = None  # JSON
+    extra_pub_ids: Optional[str] = None  # JSON
     created_at: Optional[datetime] = None
 
     class Config:
@@ -318,12 +336,23 @@ class TopicVariabilityScoreSchema(BaseModel):
 class CoauthorAnalysisScoreSchema(BaseModel):
     id: int
     applicable: Optional[bool] = None
+    reason: Optional[str] = None
     unique_coauthors: Optional[int] = None
     total_collaborations: Optional[int] = None
     solo_papers: Optional[int] = None
     avg_authors_per_paper: Optional[float] = None
+    max_authors_in_one_paper: Optional[int] = None
+    recurring_collaborators: Optional[int] = None
     collaboration_style: Optional[str] = None
     network_diversity_score: Optional[float] = None
+    collaboration_type: Optional[str] = None
+    international_flag: Optional[bool] = None
+    interpretation: Optional[str] = None
+    top_collaborators: Optional[str] = None  # JSON
+    all_coauthor_freq: Optional[str] = None  # JSON
+    total_publications: Optional[int] = None
+    candidate_name_used: Optional[str] = None
+    parse_warnings: Optional[str] = None  # JSON
     created_at: Optional[datetime] = None
 
     class Config:
@@ -344,12 +373,11 @@ class CVSummarySchema(BaseModel):
     experience_grade: Optional[str] = None
     tvs_score: Optional[float] = None
     tvs_grade: Optional[str] = None
+    summary_data: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 class CandidateDetailSchema(BaseModel):
@@ -387,10 +415,9 @@ class CandidateListSchema(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    cv_summary: Optional[CVSummarySchema] = None
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 class UploadResponseSchema(BaseModel):
@@ -642,22 +669,38 @@ async def upload_pdf(
 
 @app.get("/candidates", response_model=List[CandidateListSchema], tags=["Candidates"])
 async def list_candidates():
-    """List all candidates with basic info."""
+    """List all candidates with basic info and cv_summary if available."""
     session = get_session()
     try:
         candidates = session.query(Candidate).all()
-        return [
-            {
-                "id":           c.id,
+        result = []
+        for c in candidates:
+            # Get cv_summary if it exists
+            cv_summary = session.query(CVSummary).filter(CVSummary.candidate_id == c.id).first()
+            
+            # Build candidate list with cv_summary
+            cv_summary_data = None
+            if cv_summary:
+                try:
+                    cv_summary_data = CVSummarySchema.model_validate(cv_summary)
+                except Exception as e:
+                    print(f"Failed to validate cv_summary for candidate {c.id}: {e}")
+            
+            candidate_data = {
+                "id": c.id,
                 "candidate_id": c.candidate_id,
-                "name":         c.name,
-                "email":        c.email,
-                "phone":        c.phone,
+                "name": c.name,
+                "email": c.email,
+                "phone": c.phone,
+                "cv_summary": cv_summary_data,
             }
-            for c in candidates
-        ]
+            result.append(candidate_data)
+        return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve candidates: {e}")
+        print(f"Error in list_candidates: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve candidates: {str(e)}")
     finally:
         session.close()
 

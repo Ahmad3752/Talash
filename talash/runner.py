@@ -26,13 +26,14 @@ from llm_client import litellm_chat, openrouter_structured_call
 
 load_dotenv()
 
-openrouter_key = "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"
+
+openrouter_key= os.getenv("OPENROUTER_API_KEY")
 llm = ChatOpenAI(
     model="openai/gpt-4o-mini",
     api_key=openrouter_key,
     base_url="https://openrouter.ai/api/v1",
     temperature=0.7,
-    max_tokens=4096,
+    max_tokens=7000,
 )
 
 
