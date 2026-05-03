@@ -42,6 +42,7 @@ from db_models import (
     CVSummary,
 )
 from db_connect import init_db, get_session, engine
+from utils.email import send_email, build_recommendation_email_html
 
 # Import runner utilities.
 # detect_cv_boundaries is the SMART version (email/keyword heuristic).
@@ -582,14 +583,25 @@ async def root():
 
 @app.get("/health", tags=["Health"])
 async def health_check():
+    from redis_cache import ping as redis_ping
     session = get_session()
     try:
         session.query(Candidate).first()
-        return {"status": "healthy", "database": "connected"}
+        db_ok = True
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Database connection failed: {e}")
+        db_ok = False
     finally:
         session.close()
+ 
+    redis_ok = redis_ping()
+ 
+    status = "healthy" if (db_ok and redis_ok) else "degraded"
+    return {
+        "status":   status,
+        "database": "connected" if db_ok    else "error",
+        "redis":    "connected" if redis_ok else "error",
+    }
+ 
 
 
 @app.post("/upload", response_model=UploadResponseSchema, tags=["Upload"])
@@ -884,5 +896,166 @@ async def get_cv_summary(candidate_id: int):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve CV summary: {e}")
+    finally:
+        session.close()
+
+
+# ============================================================================
+# EMAIL ENDPOINTS
+# ============================================================================
+
+class FetchEmailResponse(BaseModel):
+    email: Optional[str] = None
+    found: bool
+
+
+class SendEmailResponse(BaseModel):
+    success: bool
+    error: Optional[str] = None
+
+
+@app.get("/candidates/{candidate_id}/fetch-email",
+         response_model=FetchEmailResponse, tags=["Email"])
+async def fetch_candidate_email(candidate_id: int):
+    """
+    Fetch or infer candidate email.
+    
+    If candidate.email is populated, return it directly.
+    Otherwise attempt to infer from available data.
+    """
+    session = get_session()
+    try:
+        candidate = session.query(Candidate).filter(Candidate.id == candidate_id).first()
+        if not candidate:
+            raise HTTPException(status_code=404, detail=f"Candidate {candidate_id} not found")
+        
+        # Case 1: Email is already populated
+        if candidate.email and candidate.email.strip():
+            return FetchEmailResponse(email=candidate.email, found=True)
+        
+        # Case 2: No email found (could add lookup logic here in the future)
+        return FetchEmailResponse(email=None, found=False)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch email: {str(e)}")
+    finally:
+        session.close()
+
+
+@app.post("/candidates/{candidate_id}/send-recommendation-email",
+          response_model=SendEmailResponse, tags=["Email"])
+async def send_recommendation_email(candidate_id: int):
+    """
+    Send a recommendation email to the candidate.
+    
+    Fetches candidate data, CV summary, and research score recommendations,
+    builds an HTML email, and sends it via SMTP.
+    """
+    session = get_session()
+    try:
+        # Fetch candidate
+        candidate = session.query(Candidate).filter(Candidate.id == candidate_id).first()
+        if not candidate:
+            raise HTTPException(status_code=404, detail=f"Candidate {candidate_id} not found")
+        
+        # Check email exists
+        if not candidate.email or not candidate.email.strip():
+            return SendEmailResponse(
+                success=False,
+                error="Candidate has no email address"
+            )
+        
+        # Fetch CV summary
+        cv_summary = session.query(CVSummary).filter(
+            CVSummary.candidate_id == candidate.id
+        ).first()
+        
+        if not cv_summary:
+            return SendEmailResponse(
+                success=False,
+                error="CV summary not found for this candidate"
+            )
+        
+        # Fetch research scores for recommendations
+        research_scores = session.query(ResearchScore).filter(
+            ResearchScore.candidate_id == candidate.id
+        ).first()
+        
+        # Extract recommendations from research scores and summary
+        recommendations = []
+        
+        if research_scores and research_scores.recommendations:
+            try:
+                rec_list = json.loads(research_scores.recommendations)
+                if isinstance(rec_list, list):
+                    recommendations.extend(rec_list)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        # Also try to extract from summary_data if available
+        if cv_summary.summary_data:
+            try:
+                summary_data = json.loads(cv_summary.summary_data)
+                if isinstance(summary_data, dict):
+                    summary_recs = summary_data.get("recommendations", [])
+                    if isinstance(summary_recs, list):
+                        recommendations.extend(summary_recs)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_recs = []
+        for rec in recommendations:
+            if rec not in seen:
+                seen.add(rec)
+                unique_recs.append(rec)
+        recommendations = unique_recs[:10]  # Cap at 10 recommendations
+        
+        # Parse summary interpretation from summary_data
+        summary_interpretation = ""
+        if cv_summary.summary_data:
+            try:
+                summary_data = json.loads(cv_summary.summary_data)
+                summary_interpretation = summary_data.get("summary_interpretation", "")
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        if not summary_interpretation:
+            summary_interpretation = f"Your CV demonstrates {cv_summary.overall_grade.lower() if cv_summary.overall_grade else 'good'} overall profile strength with a score of {cv_summary.overall_score:.1f}/100."
+        
+        # Build email HTML
+        html_body = build_recommendation_email_html(
+            candidate_name=candidate.name or "Candidate",
+            overall_score=cv_summary.overall_score or 0,
+            overall_grade=cv_summary.overall_grade or "N/A",
+            recommendations=recommendations,
+            summary_interpretation=summary_interpretation
+        )
+        
+        # Send email
+        result = send_email(
+            to_email=candidate.email,
+            subject=f"CV Evaluation Recommendations — {candidate.name or 'Candidate'}",
+            html_body=html_body
+        )
+        
+        if result["success"]:
+            return SendEmailResponse(success=True)
+        else:
+            return SendEmailResponse(
+                success=False,
+                error=result.get("error", "Unknown error sending email")
+            )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        return SendEmailResponse(
+            success=False,
+            error=f"Error: {str(e)}"
+        )
     finally:
         session.close()

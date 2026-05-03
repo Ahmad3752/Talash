@@ -5,6 +5,7 @@ import { ThemeToggle } from './components/ThemeToggle';
 import UploadPage from './pages/UploadPage';
 import CandidatesPage from './pages/CandidatesPage';
 import CandidateDetailPage from './pages/CandidateDetailPage';
+import RankingsPage from './pages/RankingsPage';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="/" element={<UploadPage />} />
             <Route path="/candidates" element={<CandidatesPage />} />
             <Route path="/candidates/:id" element={<CandidateDetailPage />} />
+            <Route path="/rankings" element={<RankingsPage />} />
             <Route path="*" element={<div className="p-20 text-center">Page Not Found</div>} />
           </Routes>
         </main>

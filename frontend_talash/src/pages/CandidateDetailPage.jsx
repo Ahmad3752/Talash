@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import client from '../api/client';
+import toast from 'react-hot-toast';
 import { 
   ArrowLeft, Mail, Phone, Award, Briefcase, GraduationCap, 
-  BarChart3, FileText, Clock, Loader2, CheckCircle, AlertCircle, Zap
+  BarChart3, FileText, Clock, Loader2, CheckCircle, AlertCircle, Zap, Send
 } from 'lucide-react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer,
@@ -23,6 +24,7 @@ const CandidateDetailPage = () => {
   const [candidate, setCandidate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('education');
+  const [emailStatus, setEmailStatus] = useState('idle'); // idle | fetching | sending | sent | no_email | error
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -37,6 +39,113 @@ const CandidateDetailPage = () => {
     };
     fetchCandidate();
   }, [id]);
+
+  const handleEmailClick = async () => {
+    if (!candidate) return;
+
+    try {
+      setEmailStatus('fetching');
+
+      // Check if candidate already has email
+      if (candidate.email && candidate.email.trim()) {
+        // Proceed directly to send
+        setEmailStatus('sending');
+        const response = await client.post(
+          `/candidates/${candidate.id}/send-recommendation-email`
+        );
+
+        if (response.data.success) {
+          setEmailStatus('sent');
+          toast.success('Recommendation email sent successfully!');
+          setTimeout(() => setEmailStatus('idle'), 3000);
+        } else {
+          setEmailStatus('error');
+          toast.error(
+            response.data.error || 'Failed to send email. Please try again.'
+          );
+          setTimeout(() => setEmailStatus('idle'), 3000);
+        }
+      } else {
+        // Fetch email from backend
+        const fetchResponse = await client.get(
+          `/candidates/${candidate.id}/fetch-email`
+        );
+
+        if (fetchResponse.data.found && fetchResponse.data.email) {
+          // Email found, proceed to send
+          setEmailStatus('sending');
+          const sendResponse = await client.post(
+            `/candidates/${candidate.id}/send-recommendation-email`
+          );
+
+          if (sendResponse.data.success) {
+            setEmailStatus('sent');
+            toast.success('Recommendation email sent successfully!');
+            setTimeout(() => setEmailStatus('idle'), 3000);
+          } else {
+            setEmailStatus('error');
+            toast.error(
+              sendResponse.data.error || 'Failed to send email. Please try again.'
+            );
+            setTimeout(() => setEmailStatus('idle'), 3000);
+          }
+        } else {
+          // No email found
+          setEmailStatus('no_email');
+          toast.error('No email address available for this candidate.');
+          setTimeout(() => setEmailStatus('idle'), 5000);
+        }
+      }
+    } catch (error) {
+      console.error('Email error:', error);
+      setEmailStatus('error');
+      toast.error('An error occurred. Please try again.');
+      setTimeout(() => setEmailStatus('idle'), 3000);
+    }
+  };
+
+  const getEmailButtonState = () => {
+    const stateConfig = {
+      idle: {
+        label: 'Email Candidate',
+        icon: Send,
+        disabled: false,
+        className: 'bg-brand-teal/20 text-brand-teal border-brand-teal/30 hover:bg-brand-teal/30'
+      },
+      fetching: {
+        label: 'Looking up email…',
+        icon: Loader2,
+        disabled: true,
+        className: 'bg-brand-amber/20 text-brand-amber border-brand-amber/30'
+      },
+      sending: {
+        label: 'Sending…',
+        icon: Loader2,
+        disabled: true,
+        className: 'bg-brand-teal/20 text-brand-teal border-brand-teal/30'
+      },
+      sent: {
+        label: 'Email Sent!',
+        icon: CheckCircle,
+        disabled: true,
+        className: 'bg-green-500/20 text-green-400 border-green-500/30'
+      },
+      no_email: {
+        label: 'No Email Available',
+        icon: AlertCircle,
+        disabled: true,
+        className: 'bg-red-500/20 text-red-400 border-red-500/30 opacity-50'
+      },
+      error: {
+        label: 'Error',
+        icon: AlertCircle,
+        disabled: true,
+        className: 'bg-red-500/20 text-red-400 border-red-500/30'
+      }
+    };
+
+    return stateConfig[emailStatus] || stateConfig.idle;
+  };
 
   if (loading) return (
     <div className="p-10 space-y-6">
@@ -437,6 +546,33 @@ const CandidateDetailPage = () => {
 
         return (
           <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Email Candidate Button */}
+            <div className="flex items-center gap-4">
+              {(() => {
+                const buttonState = getEmailButtonState();
+                const ButtonIcon = buttonState.icon;
+                return (
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={handleEmailClick}
+                      disabled={buttonState.disabled}
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${buttonState.className} ${
+                        buttonState.disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-105'
+                      }`}
+                    >
+                      <ButtonIcon className="w-4 h-4" />
+                      <span className="text-sm font-semibold">{buttonState.label}</span>
+                    </button>
+                    {emailStatus === 'no_email' && (
+                      <p className="text-xs text-red-400" style={{ color: 'var(--text-muted)' }}>
+                        No email address available for this candidate.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
             {/* A) Overall Assessment Bar */}
             <div className="glass-card p-8 bg-gradient-to-br from-brand-teal/10 to-brand-teal/5 border border-brand-teal/30">
               <h3 className="text-lg font-bold text-brand-teal mb-2">Overall CV Assessment</h3>

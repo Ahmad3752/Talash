@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { Users, Upload } from 'lucide-react';
+import { Users, Upload, Trophy } from 'lucide-react';
 
 const AppSidebar = () => {
   const navItems = [
-    { icon: Upload, label: 'Ingest Data', path: '/' },
-    { icon: Users, label: 'Candidates', path: '/candidates' },
+    { icon: Upload,  label: 'Ingest Data', path: '/' },
+    { icon: Users,   label: 'Candidates', path: '/candidates' },
+    { icon: Trophy,  label: 'Rankings',   path: '/rankings' },
   ];
 
   // TODO: Replace with actual auth context when authentication is implemented

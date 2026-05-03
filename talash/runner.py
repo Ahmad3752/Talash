@@ -1,14 +1,9 @@
 # runner.py
 # Fixes applied:
 #   FIX 1 — all_results uses _last_value reducer instead of operator.add
-#            operator.add in a sequential graph caused every node to append
-#            the full list to itself → exponential duplication → same candidate
-#            scored multiple times with slightly different results.
-#   FIX 2 — detect_cv_boundaries tightened: removed r"dr\.?\s+[A-Z][a-z]+"
-#            pattern that fired on co-author names / references mid-CV, causing
-#            a single CV to be split into 2 fake documents.
-#   FIX 3 — llm_client.py: gemini-1.5-flash → gemini-2.0-flash + openrouter/auto
-#            fallback (see separate llm_client.py file).
+#   FIX 2 — detect_cv_boundaries tightened
+#   FIX 3 — llm_client.py: gemini-2.0-flash + openrouter/auto fallback
+#   FIX 4 — Redis cache: CV hash checked before processing; written after DB save
 
 import os
 import re
@@ -38,7 +33,7 @@ llm = ChatOpenAI(
 
 
 # ============================================================================
-# CV Boundary Detection — FIX 2
+# CV Boundary Detection
 # ============================================================================
 
 _EMAIL_RE      = re.compile(r"\b[\w.+\-]+@[\w\-]+\.[a-z]{2,}\b", re.IGNORECASE)
@@ -46,22 +41,10 @@ _PHONE_RE      = re.compile(r"(\+?\d[\d\s\-\(\)]{7,}\d)")
 _CV_KEYWORD_RE = re.compile(
     r"curriculum\s+vitae|\bresume\b|\bbiodata\b", re.IGNORECASE
 )
-# Anchored to LINE START — avoids firing on "Name: John" buried in a paragraph
 _NAME_LABEL_RE = re.compile(r"^name\s*[:\-]", re.IGNORECASE | re.MULTILINE)
 
 
 def _looks_like_cv_start(page_text: str) -> bool:
-    """
-    Return True only when a page is clearly the FIRST page of a new CV.
-
-    Old logic had r"dr\.?\s+[A-Z][a-z]+" which fired on any co-author,
-    supervisor, or reference mention → split one CV into multiple fragments.
-
-    New rules (checked against first 600 chars only):
-      1. Explicit CV keyword (curriculum vitae / resume / biodata) AND email/phone
-      2. Line-start "Name:" label AND email
-    Anything else is treated as a continuation of the current CV.
-    """
     sample = page_text[:600]
     has_cv_keyword = bool(_CV_KEYWORD_RE.search(sample))
     has_email      = bool(_EMAIL_RE.search(sample))
@@ -76,10 +59,6 @@ def _looks_like_cv_start(page_text: str) -> bool:
 
 
 def detect_cv_boundaries(pages: list) -> list:
-    """
-    Split a list of page-text strings into individual CV documents.
-    Returns CV text strings; fragments < 200 chars are discarded.
-    """
     cvs: list[str] = []
     current: list[str] = []
 
@@ -107,30 +86,17 @@ def _cv_fingerprint(text: str) -> str:
 
 
 # ============================================================================
-# LangGraph State — FIX 1
+# LangGraph State
 # ============================================================================
 
 def _last_value(left: List[dict], right: List[dict]) -> List[dict]:
-    """
-    Last-write-wins reducer for all_results in a sequential graph.
-
-    WHY this replaces operator.add:
-      Sequential graph — every node receives the current state, modifies
-      all_results in place, then returns the full list.
-      With operator.add LangGraph CONCATENATES returned list with existing:
-        after llm_extractor   (1 CV):  [r1]
-        after database_storage:        [r1] + [r1]       = [r1, r1]
-        after education_analysis:      [r1,r1]+[r1,r1]   = [r1,r1,r1,r1]
-        ... 6 nodes total → 64 copies → 64 independent scoring runs
-      With _last_value the returned list simply REPLACES state — no growth.
-    """
     return right if right is not None else left
 
 
 class CVState(TypedDict):
     pdf_path:    str
-    raw_texts:   Annotated[List[tuple], operator.add]  # parser appends new CVs — add is correct here
-    all_results: Annotated[List[dict],  _last_value]   # FIX 1: was operator.add
+    raw_texts:   Annotated[List[tuple], operator.add]
+    all_results: Annotated[List[dict],  _last_value]
     error:       Optional[str]
 
 
@@ -571,6 +537,9 @@ def llm_extractor(state: CVState) -> dict:
             extracted = infer_skills_if_missing(extracted, None)
             extracted["_candidate_id"] = candidate_id
 
+            # Store the original CV text so database_storage can cache it in Redis
+            extracted["_cv_text"] = text
+
             info = extracted.get("personal_info", {})
             name  = info.get("name", "Unknown")
             email = info.get("email", "—")
@@ -586,18 +555,18 @@ def llm_extractor(state: CVState) -> dict:
             print(f"    ❌ Extraction failed: {e}")
             all_results.append({"_candidate_id": candidate_id, "error": str(e)})
 
-    # FIX 1: return the new list — _last_value reducer will REPLACE state,
-    # not append to it, so no duplication occurs.
     return {"all_results": all_results}
 
 
 def database_storage(state: "CVState") -> dict:
-    """Upsert extracted candidate data into the database."""
+    """Upsert extracted candidate data into the database, then write hash to Redis."""
     from db_models import (
         Candidate, Education, Experience, Skill,
         Publication, Book, Patent, SupervisedStudent,
     )
     from db_connect import get_session
+    # FIX 4: import Redis helper
+    from redis_cache import mark_as_cached
 
     if state.get("error"):
         return {"error": state.get("error")}
@@ -626,9 +595,10 @@ def database_storage(state: "CVState") -> dict:
             if "error" in extracted:
                 continue
 
-            cid  = extracted.get("_candidate_id", "unknown")
-            info = extracted.get("personal_info", {})
-            name = info.get("name", "Unknown")
+            cid      = extracted.get("_candidate_id", "unknown")
+            cv_text  = extracted.get("_cv_text", "")   # FIX 4: retrieved for Redis
+            info     = extracted.get("personal_info", {})
+            name     = info.get("name", "Unknown")
 
             candidate = session.query(Candidate).filter_by(candidate_id=cid).first()
             is_new    = candidate is None
@@ -755,6 +725,14 @@ def database_storage(state: "CVState") -> dict:
         session.commit()
         print(f"\n  ✅ Database commit successful")
 
+        # FIX 4: Write hash to Redis AFTER successful DB commit
+        for extracted in all_results:
+            if "error" not in extracted:
+                cv_text = extracted.get("_cv_text", "")
+                cid     = extracted.get("_candidate_id", "unknown")
+                if cv_text:
+                    mark_as_cached(cv_text, cid)
+
     except Exception as e:
         session.rollback()
         import traceback; traceback.print_exc()
@@ -763,7 +741,6 @@ def database_storage(state: "CVState") -> dict:
     finally:
         session.close()
 
-    # FIX 1: return exactly what we received — _last_value just replaces, no append
     return {"all_results": all_results}
 
 
@@ -1181,6 +1158,8 @@ async def process_single_cv(
 
 
 async def process_all_cvs_sequential(pdf_path: str) -> list:
+    # FIX 4: import Redis helper
+    from redis_cache import is_cached, get_cached_candidate_id
     from db_connect import get_session
     from db_models import Candidate
 
@@ -1209,43 +1188,79 @@ async def process_all_cvs_sequential(pdf_path: str) -> list:
         return []
 
     print(f"\n{'─'*60}")
-    print("  STEP 2 — QUEUE")
+    print("  STEP 2 — REDIS CACHE CHECK")
     print(f"{'─'*60}")
 
-    session = get_session()
-    queue_info: list[dict] = []
-    for label, text in raw_texts:
-        exists = session.query(Candidate).filter_by(candidate_id=label).first() is not None
-        queue_info.append({"label": label, "text": text, "exists": exists})
-    session.close()
+    # ── FIX 4: Split into cached vs needs-processing ──────────────────────────
+    to_process: list[tuple[str, str]] = []
+    skipped_results: list[dict]       = []
 
-    total = len(raw_texts)
-    for i, info in enumerate(queue_info, 1):
-        tag = "already in DB — will refresh" if info["exists"] else "NEW"
-        print(f"    [{i}/{total}]  {info['label']}   ({tag})")
+    for label, text in raw_texts:
+        cached_id = get_cached_candidate_id(text)   # returns candidate_id str or None
+        if cached_id:
+            print(f"  ⚡ CACHE HIT  — {label}  (already processed as {cached_id})")
+            # Return a lightweight result so callers still get a record
+            session = get_session()
+            cand = session.query(Candidate).filter_by(candidate_id=cached_id).first()
+            session.close()
+            if cand:
+                skipped_results.append({
+                    "_candidate_id": cached_id,
+                    "_from_cache":   True,
+                    "personal_info": {
+                        "name":  cand.name,
+                        "email": cand.email,
+                        "phone": cand.phone,
+                    },
+                })
+            else:
+                # Hash was in Redis but candidate was deleted from DB — reprocess
+                print(f"    ⚠️  Candidate not found in DB — will reprocess")
+                to_process.append((label, text))
+        else:
+            print(f"  🆕 CACHE MISS — {label}  (will process)")
+            to_process.append((label, text))
+
+    # ── Show queue status ─────────────────────────────────────────────────────
+    print(f"\n{'─'*60}")
+    print("  STEP 3 — QUEUE")
+    print(f"{'─'*60}")
+
+    total_found  = len(raw_texts)
+    total_skip   = len(skipped_results)
+    total_new    = len(to_process)
+
+    print(f"  Total CVs in PDF : {total_found}")
+    print(f"  Skipped (cached) : {total_skip}")
+    print(f"  To process       : {total_new}")
+
+    if not to_process:
+        print("\n  ✅ All CVs already in cache — nothing to process!")
+        return skipped_results
 
     print(f"\n{'─'*60}")
-    print("  STEP 3 — PROCESSING")
+    print("  STEP 4 — PROCESSING")
     print(f"{'─'*60}")
 
-    all_results = []
-    for i, info in enumerate(queue_info, 1):
+    all_results = list(skipped_results)   # start with the cached ones
+    for i, (label, text) in enumerate(to_process, 1):
         result = await process_single_cv(
-            cv_label = info["label"],
-            cv_text  = info["text"],
+            cv_label = label,
+            cv_text  = text,
             cv_num   = i,
-            cv_total = total,
+            cv_total = total_new,
         )
         all_results.append(result)
 
-        if i < total:
+        if i < total_new:
             name = (result.get("personal_info") or {}).get("name", "")
-            print(f"\n  → Saved to database: {name or info['label']}")
-            print(f"  → Starting CV [{i+1}/{total}] ...")
+            print(f"\n  → Saved to database: {name or label}")
+            print(f"  → Starting CV [{i+1}/{total_new}] ...")
 
     print(f"\n{_WIDE}")
     success = sum(1 for r in all_results if "error" not in r)
-    print(f"  🎉 ALL {total} CV(s) PROCESSED  ({success} succeeded, {total-success} errors)")
+    total   = len(all_results)
+    print(f"  🎉 ALL {total} CV(s) DONE  ({success} succeeded, {total-success} errors, {total_skip} from cache)")
     print(_WIDE)
 
     for r in all_results:
@@ -1255,8 +1270,9 @@ async def process_all_cvs_sequential(pdf_path: str) -> list:
         score  = summ.get("overall_score", "—")
         grade  = summ.get("overall_grade", "—")
         status = summ.get("overall_status", "—")
-        marker = "✅" if "error" not in r else "❌"
-        print(f"    {marker}  {name:<30}  {str(score):>6}/100  [{grade}]  {status}")
+        cached_tag = " [cache]" if r.get("_from_cache") else ""
+        marker = "⚡" if r.get("_from_cache") else ("✅" if "error" not in r else "❌")
+        print(f"    {marker}  {name:<30}  {str(score):>6}/100  [{grade}]  {status}{cached_tag}")
 
     print()
     return all_results
@@ -1286,6 +1302,7 @@ if __name__ == "__main__":
     for r in results:
         if "error" not in r:
             name = (r.get("personal_info") or {}).get("name", "Unknown")
-            print(f"  ✓  {name}")
+            tag  = " [from cache]" if r.get("_from_cache") else ""
+            print(f"  ✓  {name}{tag}")
         else:
             print(f"  ✗  {r.get('error')}")
