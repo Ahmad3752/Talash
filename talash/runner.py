@@ -22,7 +22,7 @@ from llm_client import litellm_chat, openrouter_structured_call
 load_dotenv()
 
 
-openrouter_key= os.getenv("OPENROUTER_API_KEY")
+openrouter_key= os.getenv("OPENROUTER_KEY")
 llm = ChatOpenAI(
     model="openai/gpt-4o-mini",
     api_key=openrouter_key,
