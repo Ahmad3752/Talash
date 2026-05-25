@@ -1,13 +1,32 @@
 # edu_scores.py
 from datetime import datetime
-from db_models import Candidate, Education
-from qs_ranker import InstitutionQualityScorer
-from llm_client import litellm_chat
+from .db_models import Candidate, Education
+from .qs_ranker import InstitutionQualityScorer
+from langchain_core.messages import SystemMessage, HumanMessage
+from .db_connect import get_session
 
 CURRENT_YEAR = datetime.now().year
+# Create LLM
+from dotenv import load_dotenv
+import os
+import fitz
+from langchain_openai import ChatOpenAI
+
+load_dotenv()
+openrouter_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_KEY")
+llm = ChatOpenAI(
+    model="openai/gpt-4o-mini",
+    api_key=openrouter_key or "missing-openrouter-key",
+    base_url="https://openrouter.ai/api/v1",
+    temperature=0.7
+)
 
 def my_llm(system_prompt: str, user_prompt: str) -> str:
-    response = litellm_chat(user_prompt, system_prompt)
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_prompt)
+    ]
+    response = llm.invoke(messages)
     return response.content
 
 scorer = InstitutionQualityScorer(llm_caller=my_llm)
@@ -128,7 +147,7 @@ def score_institution_quality(education: list) -> dict:
         score = 3
         tier = 3
         method = "fallback"
-        reason = f"Scorer error ({ex})  defaulted to Tier 3 | {institution_name}"
+        reason = f"Scorer error ({ex}) — defaulted to Tier 3 | {institution_name}"
 
     return {
         "score": score,
@@ -146,7 +165,7 @@ def score_consistency(education: list) -> dict:
     2. Field alignment (5 pts): same broad field across degrees
     """
 
-    #  1. GPA Trend 
+    # ── 1. GPA Trend ─────────────────────────────────────────────
     relevant_levels = {"undergrad", "postgrad", "doctorate"}
     edu_sorted = sorted(
         [e for e in education
@@ -158,7 +177,7 @@ def score_consistency(education: list) -> dict:
 
     if len(edu_sorted) <= 1:
         gpa_trend_score = 3
-        gpa_reason = "Only one degree  neutral score"
+        gpa_reason = "Only one degree — neutral score"
     else:
         drops = []
         improvements = []
@@ -184,7 +203,7 @@ def score_consistency(education: list) -> dict:
             gpa_trend_score = 1
             gpa_reason = f"GPA sharp decline (max drop {max_drop:.1f}% > 15%)"
 
-    #  2. Field Alignment 
+    # ── 2. Field Alignment ────────────────────────────────────────
     FIELD_KEYWORDS = [
         "electrical", "electronics", "computer", "software", "mechanical",
         "civil", "chemical", "physics", "math", "biology", "medicine",
@@ -208,7 +227,7 @@ def score_consistency(education: list) -> dict:
 
     if len(higher_edu) <= 1:
         field_score = 5
-        field_reason = "Single field  full alignment"
+        field_reason = "Single field — full alignment"
     else:
         keywords = [extract_field_keyword(e["field"]) for e in higher_edu]
         most_common = max(set(keywords), key=keywords.count)
@@ -223,7 +242,7 @@ def score_consistency(education: list) -> dict:
             field_reason = f"Mostly same field ({match_count}/{total} match '{most_common}')"
         else:
             field_score = 1
-            field_reason = f"Diverse fields  {keywords}"
+            field_reason = f"Diverse fields — {keywords}"
 
     total_score = gpa_trend_score + field_score
     reason = f"GPA trend: {gpa_reason} | Field: {field_reason}"
@@ -316,7 +335,7 @@ def score_continuity(education: list, experience: list) -> dict:
     if len(edu_sorted) < 2:
         return {
             "score": 10, "max": 10,
-            "reason": "Only one degree  no gaps to measure",
+            "reason": "Only one degree — no gaps to measure",
             "gaps_found": []
         }
 
@@ -366,8 +385,8 @@ def score_continuity(education: list, experience: list) -> dict:
         score -= penalty
 
         gap_desc = (
-            f"{gap} yrs ({prev_end}{curr_end}) [{size_label}]"
-            f"{'  justified by work' if justified else '  unexplained'}"
+            f"{gap} yrs ({prev_end}→{curr_end}) [{size_label}]"
+            f"{' — justified by work' if justified else ' — unexplained'}"
         )
         gaps_found.append(gap_desc)
 
@@ -439,9 +458,9 @@ def pretty_print_result(result: dict):
     c = result["components"]
     w = 56  # width
 
-    print("" * w)
-    print(f"  EDUCATION SCORE REPORT  {result['name']}")
-    print("" * w)
+    print("═" * w)
+    print(f"  EDUCATION SCORE REPORT — {result['name']}")
+    print("═" * w)
 
     rows = [
         ("Degree Level",        c["degree_level"],        ""),
@@ -455,21 +474,21 @@ def pretty_print_result(result: dict):
         score_str = f"{comp['score']} / {comp['max']}"
         print(f"  {label:<22} {score_str:<8}  {extra}")
 
-    print("" * w)
+    print("─" * w)
     print(f"  {'Base Total':<22} {result['base_total']} / 95")
     print(f"  {'Bonus (Completeness)':<22} {result['bonus']} / 5")
-    print("" * w)
+    print("─" * w)
 
-    stars = " " if result["label"] in ("EXCELLENT", "GOOD") else ""
+    stars = "★ " if result["label"] in ("EXCELLENT", "GOOD") else ""
     print(f"  {'FINAL TOTAL':<22} {result['final_total']} / 100   {stars}{result['label']}")
-    print("" * w)
+    print("═" * w)
 
     # Gap details if any
     gaps = c["continuity"]["gaps_found"]
     if gaps:
         print("\n  Gap Details:")
         for g in gaps:
-            print(f"     {g}")
+            print(f"    • {g}")
 
     # Reasons
     print("\n  Component Reasons:")
@@ -486,7 +505,7 @@ Save and load education scores for Module 3.1
 
 import json
 from datetime import datetime
-from db_models import EducationScore, Candidate
+from .db_models import EducationScore, Candidate
 
 def save_education_score(candidate_id: int, result: dict) -> bool:
     """
@@ -509,7 +528,7 @@ def save_education_score(candidate_id: int, result: dict) -> bool:
         bool: True if saved successfully, False otherwise
     """
     # Import here to delay database engine creation until first use
-    from db_connect import get_session
+    from .db_connect import get_session
     
     session = get_session()
     
@@ -517,7 +536,7 @@ def save_education_score(candidate_id: int, result: dict) -> bool:
         # Verify candidate exists
         candidate = session.query(Candidate).filter_by(id=candidate_id).first()
         if not candidate:
-            print(f" Candidate with ID {candidate_id} not found")
+            print(f"❌ Candidate with ID {candidate_id} not found")
             return False
         
         # Extract component scores
@@ -563,13 +582,13 @@ def save_education_score(candidate_id: int, result: dict) -> bool:
         session.add(edu_score)
         session.commit()
         
-        print(f" Saved education score for {candidate.name} (ID: {candidate_id})")
+        print(f"✅ Saved education score for {candidate.name} (ID: {candidate_id})")
         print(f"   Grade: {edu_score.grade} | Score: {edu_score.raw_score}/100")
         return True
         
     except Exception as e:
         session.rollback()
-        print(f" Error saving education score: {e}")
+        print(f"❌ Error saving education score: {e}")
         return False
     finally:
         session.close()
@@ -593,7 +612,7 @@ def load_education_score(candidate_id: int) -> Optional[dict]:
         score = session.query(EducationScore).filter_by(candidate_id=candidate_id).first()
         
         if not score:
-            print(f"  No education score found for candidate {candidate_id}")
+            print(f"⚠️  No education score found for candidate {candidate_id}")
             return None
         
         # Parse reasons back from JSON
@@ -649,7 +668,7 @@ def load_education_score(candidate_id: int) -> Optional[dict]:
         return result
         
     except Exception as e:
-        print(f" Error loading education score: {e}")
+        print(f"❌ Error loading education score: {e}")
         return None
     finally:
         session.close()
@@ -669,9 +688,9 @@ def pretty_print_education_score(score_data: dict):
     c = score_data["components"]
     w = 56
     
-    print("" * w)
+    print("═" * w)
     print(f"  EDUCATION SCORE REPORT (from DB)")
-    print("" * w)
+    print("═" * w)
     
     rows = [
         ("Degree Level",        c["degree_level"],        ""),
@@ -685,12 +704,12 @@ def pretty_print_education_score(score_data: dict):
         score_str = f"{comp['score']:.1f} / {comp['max']}"
         print(f"  {label:<22} {score_str:<8}  {extra}")
     
-    print("" * w)
+    print("─" * w)
     print(f"  {'Base Total':<22} {score_data['base_total']:.1f} / 95")
     print(f"  {'Bonus (Completeness)':<22} {score_data['bonus']:.1f} / 5")
-    print("" * w)
+    print("─" * w)
     print(f"  {'FINAL TOTAL':<22} {score_data['final_total']:.1f} / 100   {score_data['label']}")
-    print("" * w)
+    print("═" * w)
     
     # Reasons
     print("\n  Component Reasons:")

@@ -2,9 +2,11 @@ import pandas as pd
 import difflib
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
-QS_CSV_PATH = r'C:\Projects\Talash\QS World University Rankings 2025 (Top global universities).csv'
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+QS_CSV_PATH = PROJECT_ROOT / "QS World University Rankings 2025 (Top global universities).csv"
 
 @dataclass
 class InstitutionScore:

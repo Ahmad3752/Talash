@@ -13,6 +13,10 @@ def connect(*args, **kwargs):
         kwargs["database"] = kwargs.pop("dbname")
     if "user" in kwargs and "username" not in kwargs:
         kwargs["user"] = kwargs.get("user")
+    # Remove sslmode parameter - pg8000 doesn't support it directly
+    # SSL will be handled through the connection string if needed
+    kwargs.pop("sslmode", None)
+    kwargs.pop("ssl", None)
     return _dbapi.connect(*args, **kwargs)
 
 from . import extensions  # noqa: F401

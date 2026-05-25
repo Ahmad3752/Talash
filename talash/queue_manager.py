@@ -52,7 +52,7 @@ async def _worker():
     them one at a time.  Never exits (runs until the process dies).
     """
     # Import here to avoid circular imports at module load time
-    from runner import app as langgraph_app, CVState
+    from .runner import app as langgraph_app, CVState
 
     print("[worker] CV queue worker started")
 

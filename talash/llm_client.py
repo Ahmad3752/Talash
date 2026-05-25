@@ -23,7 +23,7 @@ class LLMClient:
 
         self.groq_index   = 0
         self.gemini_index = 0
-        self.openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        self.openrouter_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_KEY")
 
     def _get_next_groq_key(self):
         if not self.groq_keys:
@@ -116,7 +116,7 @@ class LLMClient:
         Falls back to openrouter/auto if gpt-4o fails.
         """
         if not self.openrouter_key:
-            raise ValueError("OPENROUTER_API_KEY not found in environment")
+            raise ValueError("OPENROUTER_API_KEY or OPENROUTER_KEY not found in environment")
 
         for model in ["openrouter/openai/gpt-4o", "openrouter/auto"]:
             try:

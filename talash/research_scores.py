@@ -19,19 +19,21 @@ import pandas as pd
 import re
 import json
 import time
+from pathlib import Path
 from typing import Optional, Dict, List
 from difflib import SequenceMatcher
 
-from db_models import Candidate, ResearchScore
+from .db_models import Candidate, ResearchScore
 
 # 
 # CONFIGURATION
 # 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 CONFIG = {
-    "scimago_path": r"C:\Projects\Talash\datasets\scimagojr 2025.csv",
-    "core_path":    r"C:\Projects\Talash\datasets\CORE.csv",
-    "wos_path":     r"C:\Projects\Talash\datasets\wos_journals.csv",
+    "scimago_path": PROJECT_ROOT / "datasets" / "scimagojr 2025.csv",
+    "core_path":    PROJECT_ROOT / "datasets" / "CORE.csv",
     "current_year": 2026,
     "max_concurrent_requests": 10,
 
@@ -1179,7 +1181,7 @@ def save_research_score(candidate_id: int, result: dict) -> bool:
       - grade:            EXCEPTIONAL | EXCELLENT | GOOD | SATISFACTORY | DEVELOPING | WEAK
     """
     # Import here to delay database engine creation until first use
-    from db_connect import get_session
+    from .db_connect import get_session
     
     session = get_session()
     try:
@@ -1285,7 +1287,7 @@ async def score_candidate_research(candidate_id: int) -> dict:
 
         #  Load candidate from DB 
         # Import here to delay database engine creation until first use
-        from db_connect import get_session
+        from .db_connect import get_session
         
         session = get_session()
         cand = session.query(Candidate).filter_by(id=candidate_id).first()

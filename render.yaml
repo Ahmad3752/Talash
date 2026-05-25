@@ -10,7 +10,7 @@ services:
       - key: REDIS_URL
         sync: false
       - key: FRONTEND_URL
-        sync: false
+        value: https://talash-frontend.onrender.com
       - key: OPENROUTER_KEY
         sync: false
       - key: LITELLM_GROQ_API_KEY1

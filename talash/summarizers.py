@@ -13,7 +13,7 @@ State key contract (must match what each analysis node writes):
 import json
 from datetime import datetime
 from typing import Dict, List, Optional, Any
-from db_models import Candidate, CVSummary
+from .db_models import Candidate, CVSummary
 
 # ============================================================================
 # SCORING WEIGHTS
@@ -721,7 +721,7 @@ def _get_overall_interpretation(score: float) -> str:
 def save_summary_to_database(candidate_id: int, summary: Dict) -> bool:
     """Save overall CV summary to cv_summaries table."""
     # Import here to delay database engine creation until first use
-    from db_connect import get_session
+    from .db_connect import get_session
     
     session = get_session()
     try:

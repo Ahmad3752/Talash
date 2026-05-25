@@ -13,8 +13,8 @@ import re
 import os
 from typing import Optional
 
-from db_models import Candidate, ProfessionalExperienceScore, SkillAlignmentScore
-from llm_client import litellm_chat
+from .db_models import Candidate, ProfessionalExperienceScore, SkillAlignmentScore
+from .llm_client import litellm_chat
 
 load_dotenv()
 
@@ -133,7 +133,7 @@ def load_candidate(candidate_id: int) -> dict | None:
     already produces, or None if not found.
     """
     # Import here to delay database engine creation until first use
-    from db_connect import get_session
+    from .db_connect import get_session
     
     session = get_session()
     try:
@@ -1255,7 +1255,7 @@ def save_professional_experience_score(candidate_id: int, result: dict) -> bool:
     Save Module 3.8 (Professional Experience) analysis results to the database.
     """
     # Import here to delay database engine creation until first use
-    from db_connect import get_session
+    from .db_connect import get_session
     
     session = get_session()
     try:
@@ -1293,7 +1293,6 @@ def save_professional_experience_score(candidate_id: int, result: dict) -> bool:
             total_experience_months=career.get("total_experience_months", 0),
             domain_continuity=career.get("domain_continuity", "weak"),
             career_notes=json.dumps(career.get("notes", []), default=str),
-            reasons=json.dumps(reasons, default=str),
             created_at=datetime.utcnow(),
         )
 
@@ -1315,7 +1314,7 @@ def save_skill_alignment_score(candidate_id: int, result: dict) -> bool:
     Save Module 3.9 (Skill Alignment) analysis results to the database.
     """
     # Import here to delay database engine creation until first use
-    from db_connect import get_session
+    from .db_connect import get_session
     
     session = get_session()
     try:
@@ -1355,7 +1354,6 @@ def save_skill_alignment_score(candidate_id: int, result: dict) -> bool:
             partial_count=partial_count,
             weak_count=weak_count,
             unsupported_count=unsupported_count,
-            reasons=json.dumps(reasons, default=str),
             created_at=datetime.utcnow(),
         )
 

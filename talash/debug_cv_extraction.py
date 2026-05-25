@@ -5,7 +5,7 @@ Debug script to diagnose CV extraction and storage issues.
 import os
 import sys
 import fitz
-from runner import detect_cv_boundaries, _cv_fingerprint
+from .runner import detect_cv_boundaries, _cv_fingerprint
 
 def debug_pdf_parsing(pdf_path: str):
     """
@@ -56,8 +56,8 @@ def debug_pdf_parsing(pdf_path: str):
     # Step 3: Check database for existing CVs
     print(f"\n--- STEP 3: Checking database for existing CVs ---")
     try:
-        from db_connect import get_session
-        from db_models import Candidate
+        from .db_connect import get_session
+        from .db_models import Candidate
         
         session = get_session()
         candidates = session.query(Candidate).all()

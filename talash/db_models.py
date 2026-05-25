@@ -320,7 +320,7 @@ class ProfessionalExperienceScore(Base):
     career_notes          = Column(Text)    # JSON
 
     created_at            = Column(DateTime, default=datetime.utcnow)
-    reasons               = Column(Text)    # JSON
+    
 
     candidate = relationship("Candidate", back_populates="professional_experience_scores")
 
@@ -351,7 +351,7 @@ class SkillAlignmentScore(Base):
     unsupported_count       = Column(Integer)
 
     created_at              = Column(DateTime, default=datetime.utcnow)
-    reasons                 = Column(Text)    # JSON
+    
 
     candidate = relationship("Candidate", back_populates="skill_alignment_scores")
 
@@ -383,8 +383,7 @@ class TopicVariabilityScore(Base):
     extra_pub_ids          = Column(Text)     # JSON
 
     created_at             = Column(DateTime, default=datetime.utcnow)
-    reasons                = Column(Text)    # JSON
-
+    
     candidate = relationship("Candidate", back_populates="topic_variability_scores")
 
 
@@ -420,7 +419,7 @@ class CoauthorAnalysisScore(Base):
     parse_warnings           = Column(Text)     # JSON
 
     created_at               = Column(DateTime, default=datetime.utcnow)
-    reasons                  = Column(Text)    # JSON
+    
 
     candidate = relationship("Candidate", back_populates="coauthor_analysis_scores")
 
@@ -464,7 +463,7 @@ class CVSummary(Base):
 
     #  Full JSON dump 
     summary_data   = Column(Text)     # complete summary dict as JSON
-    reasons        = Column(Text)     # General summary reasons
+    
 
     #  Metadata 
     created_at     = Column(DateTime, default=datetime.utcnow)

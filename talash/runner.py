@@ -17,15 +17,15 @@ from typing import Annotated, List, Optional, Literal, TypedDict
 from pydantic import BaseModel, Field, field_validator
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
-from llm_client import litellm_chat, openrouter_structured_call
+from .llm_client import litellm_chat, openrouter_structured_call
 
 load_dotenv()
 
 
-openrouter_key= os.getenv("OPENROUTER_KEY")
+openrouter_key = os.getenv("OPENROUTER_KEY") or os.getenv("OPENROUTER_API_KEY")
 llm = ChatOpenAI(
     model="openai/gpt-4o-mini",
-    api_key=openrouter_key,
+    api_key=openrouter_key or "missing-openrouter-key",
     base_url="https://openrouter.ai/api/v1",
     temperature=0.7,
     max_tokens=7000,
@@ -560,13 +560,13 @@ def llm_extractor(state: CVState) -> dict:
 
 def database_storage(state: "CVState") -> dict:
     """Upsert extracted candidate data into the database, then write hash to Redis."""
-    from db_models import (
+    from .db_models import (
         Candidate, Education, Experience, Skill,
         Publication, Book, Patent, SupervisedStudent,
     )
-    from db_connect import get_session
+    from .db_connect import get_session
     # FIX 4: import Redis helper
-    from redis_cache import mark_as_cached
+    from .redis_cache import mark_as_cached
 
     if state.get("error"):
         return {"error": state.get("error")}
@@ -746,9 +746,9 @@ def database_storage(state: "CVState") -> dict:
 
 async def education_analysis(state: CVState) -> dict:
     """Score education profile and persist to EducationScore table."""
-    from db_connect import get_session
-    from db_models import Candidate
-    from edu_scores import score_education, save_education_score
+    from .db_connect import get_session
+    from .db_models import Candidate
+    from .edu_scores import score_education, save_education_score
 
     all_results = state.get("all_results", [])
 
@@ -808,9 +808,9 @@ async def education_analysis(state: CVState) -> dict:
 
 async def research_analysis(state: CVState) -> dict:
     """Score research profile and persist to ResearchScore table."""
-    from db_connect import get_session
-    from db_models import Candidate
-    from research_scores import score_candidate_research
+    from .db_connect import get_session
+    from .db_models import Candidate
+    from .research_scores import score_candidate_research
 
     all_results = state.get("all_results", [])
 
@@ -855,9 +855,9 @@ async def research_analysis(state: CVState) -> dict:
 
 async def experiance_skill_analysis(state: CVState) -> dict:
     """Score experience + skill alignment and persist to DB."""
-    from db_connect import get_session
-    from db_models import Candidate
-    from experiance_skill_score import run_candidate, save_professional_and_skill_scores
+    from .db_connect import get_session
+    from .db_models import Candidate
+    from .experiance_skill_score import run_candidate, save_professional_and_skill_scores
 
     all_results = state.get("all_results", [])
 
@@ -914,9 +914,9 @@ async def experiance_skill_analysis(state: CVState) -> dict:
 
 async def tvs_ccs_analysis(state: CVState) -> dict:
     """Analyse topic variability & co-author collaboration (informational)."""
-    from db_connect import get_session
-    from db_models import Candidate
-    from tvs_ccs_score import run_36_37, save_topic_and_coauthor_scores
+    from .db_connect import get_session
+    from .db_models import Candidate
+    from .tvs_ccs_score import run_36_37, save_topic_and_coauthor_scores
 
     all_results = state.get("all_results", [])
 
@@ -993,9 +993,9 @@ async def tvs_ccs_analysis(state: CVState) -> dict:
 
 async def summarizers(state: CVState) -> dict:
     """Generate weighted overall summary and persist to CVSummary table."""
-    from db_connect import get_session
-    from db_models import Candidate
-    from summarizers import (
+    from .db_connect import get_session
+    from .db_models import Candidate
+    from .summarizers import (
         generate_education_report,
         generate_research_report,
         generate_experience_skills_report,
@@ -1159,9 +1159,9 @@ async def process_single_cv(
 
 async def process_all_cvs_sequential(pdf_path: str) -> list:
     # FIX 4: import Redis helper
-    from redis_cache import is_cached, get_cached_candidate_id
-    from db_connect import get_session
-    from db_models import Candidate
+    from .redis_cache import is_cached, get_cached_candidate_id
+    from .db_connect import get_session
+    from .db_models import Candidate
 
     _WIDE = "═" * 60
 
@@ -1292,11 +1292,11 @@ def run_pipeline(pdf_path: str) -> list:
 # Initialise DB on import / direct run
 # ============================================================================
 
-from db_connect import init_db
+from .db_connect import init_db
 init_db()
 
 if __name__ == "__main__":
-    pdf_path = r"C:\Projects\Talash\Cvs\output_first_10_pages.pdf"
+    pdf_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Cvs", "output_first_10_pages.pdf")
     results  = run_pipeline(pdf_path)
     print(f"\nDone — {len(results)} CV(s) processed")
     for r in results:

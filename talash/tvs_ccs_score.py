@@ -21,11 +21,11 @@ from pydantic import BaseModel, Field
 
 from dotenv import load_dotenv
 
-from db_models import Candidate, TopicVariabilityScore, CoauthorAnalysisScore
+from .db_models import Candidate, TopicVariabilityScore, CoauthorAnalysisScore
 
 load_dotenv()
 
-from llm_client import litellm_chat
+from .llm_client import litellm_chat
 
 #  Separator helpers 
 SEP  = "═" * 60
@@ -860,7 +860,7 @@ def run_36_37(candidate: dict) -> dict:
 def save_topic_variability_score(candidate_id: int, result: dict) -> bool:
     """Save Module 3.6 (Topic Variability) analysis results to the database."""
     # Import here to delay database engine creation until first use
-    from db_connect import get_session
+    from .db_connect import get_session
     
     session = get_session()
     try:
@@ -919,7 +919,7 @@ def save_topic_variability_score(candidate_id: int, result: dict) -> bool:
 def save_coauthor_analysis_score(candidate_id: int, result: dict) -> bool:
     """Save Module 3.7 (Co-author Analysis) results to the database."""
     # Import here to delay database engine creation until first use
-    from db_connect import get_session
+    from .db_connect import get_session
     
     session = get_session()
     try:
