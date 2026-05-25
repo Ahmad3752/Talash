@@ -1,20 +1,64 @@
+# Version control
+.git/
+.gitignore
+.github/
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.db
-*.sqlite3
+.pytest_cache/
+.mypy_cache/
+.coverage
+*.egg-info/
+dist/
+build/
 
+# Virtual environments
 .venv/
 venv/
 env/
+ENV/
+myvenv/
 
-.git/
-.gitignore
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
 
-Dockerfile
-docker-compose.yaml
+# OS files
+.DS_Store
+Thumbs.db
 
+# Node
 node_modules/
 dist/
 build/
+
+# Environment
+.env
+.env.*
+
+# Database
+*.db
+*.sqlite3
+postgres_data/
+redis_data/
+
+# Logs
+*.log
+
+# Documentation/notes
+simplify.md
+frontend_simplify.md
+
+# Large files
+datasets/enriched_final1.json
+
+# Docker
+docker-compose.yaml
+
+# Git
+.git

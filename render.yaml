@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: talash-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: OPENROUTER_KEY
+        sync: false
+      - key: LITELLM_GROQ_API_KEY1
+        sync: false
+      - key: LITELLM_GROQ_API_KEY2
+        sync: false
+      - key: LITELLM_GEMINI_API_KEY1
+        sync: false
+      - key: LITELLM_GEMINI_API_KEY2
+        sync: false
+      - key: LITELLM_GEMINI_API_KEY3
+        sync: false
+      - key: GROK_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: SMTP_SERVER
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+
+  - type: static_site
+    name: talash-frontend
+    buildCommand: cd frontend_talash && npm install && npm run build
+    staticPublishPath: frontend_talash/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://talash-backend.onrender.com

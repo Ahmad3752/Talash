@@ -34,21 +34,21 @@ import asyncio
 # CRITICAL: Import ALL models before init_db so SQLAlchemy create_all() sees
 #           every table.
 # ============================================================================
-from db_models import (
+from .db_models import (
     Base, Candidate, Education, Experience, Skill,
     Publication, Book, Patent, SupervisedStudent,
     EducationScore, ResearchScore, ProfessionalExperienceScore,
     SkillAlignmentScore, TopicVariabilityScore, CoauthorAnalysisScore,
     CVSummary,
 )
-from db_connect import init_db, get_session, engine
-from utils.email import send_email, build_recommendation_email_html
+from .db_connect import init_db, get_session, engine
+from .utils.email import send_email, build_recommendation_email_html
 
 # Import runner utilities.
 # detect_cv_boundaries is the SMART version (email/keyword heuristic).
 # _cv_fingerprint ensures IDs in _count_cvs_in_pdf match what database_storage writes.
-import runner
-from runner import (
+from . import runner
+from .runner import (
     process_single_cv,
     process_all_cvs_sequential,
     parser,
@@ -76,7 +76,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:5173")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -583,7 +583,7 @@ async def root():
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    from redis_cache import ping as redis_ping
+    from .redis_cache import ping as redis_ping
     session = get_session()
     try:
         session.query(Candidate).first()
