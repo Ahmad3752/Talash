@@ -23,15 +23,11 @@ const AppSidebar = () => {
       }}
     >
       <div className="p-6 flex items-center gap-3">
-        <div 
-          className="w-8 h-8 rounded-lg flex items-center justify-center font-black italic"
-          style={{
-            backgroundColor: 'var(--accent)',
-            color: 'var(--bg-base)',
-          }}
-        >
-          T
-        </div>
+        <img
+          src="/logo.svg"
+          alt="Talash logo"
+          className="w-8 h-8 rounded-lg"
+        />
         <h1 className="text-xl font-syne tracking-tight" style={{ color: 'var(--text-primary)' }}>TALASH</h1>
       </div>
 
