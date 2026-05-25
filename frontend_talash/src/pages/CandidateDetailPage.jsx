@@ -4,14 +4,12 @@ import client from '../api/client';
 import toast from 'react-hot-toast';
 import { 
   ArrowLeft, Mail, Phone, Award, Briefcase, GraduationCap, 
-  BarChart3, FileText, Clock, Loader2, CheckCircle, AlertCircle, Zap, Send
+  BarChart3, FileText, Clock, Loader2, CheckCircle, AlertCircle, Send
 } from 'lucide-react';
 import { 
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer,
-  PieChart as RechartsPieChart, Pie, Cell
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer
 } from 'recharts';
 import GradeBadge from '../components/GradeBadge';
-import ScoreBar from '../components/ScoreBar';
 import StatChip from '../components/StatChip';
 import PublicationCard from '../components/PublicationCard';
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -160,7 +158,6 @@ const CandidateDetailPage = () => {
   if (!candidate) return <div className="p-10 text-center">Candidate not found</div>;
 
   const summary = candidate.cv_summary;
-  const detailedData = summary?.summary_data ? JSON.parse(summary.summary_data) : {};
 
   // Radar Data
   const radarData = [

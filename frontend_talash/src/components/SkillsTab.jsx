@@ -52,38 +52,6 @@ const SkillsTab = ({ candidate }) => {
     }
   };
 
-  // Get skill color for progress bar
-  const getSkillBgColor = (status) => {
-    switch (status) {
-      case 'strong':
-        return 'bg-brand-green';
-      case 'partial':
-        return 'bg-brand-amber';
-      case 'weak':
-        return 'bg-brand-rose';
-      case 'unsupported':
-        return 'bg-slate-500';
-      default:
-        return 'bg-brand-teal';
-    }
-  };
-
-  // Get status badge color
-  const getStatusBgColor = (status) => {
-    switch (status) {
-      case 'strong':
-        return 'bg-brand-green/10 text-brand-green border-brand-green/30';
-      case 'partial':
-        return 'bg-brand-amber/10 text-brand-amber border-brand-amber/30';
-      case 'weak':
-        return 'bg-brand-rose/10 text-brand-rose border-brand-rose/30';
-      case 'unsupported':
-        return 'bg-slate-500/10 text-slate-500 border-slate-500/30';
-      default:
-        return 'bg-brand-teal/10 text-brand-teal border-brand-teal/30';
-    }
-  };
-
   // Calculate score percentage for color coding
   const scorePercentage = (skillScores.raw_score / skillScores.max_score) * 100;
   const getScoreBarColor = () => {

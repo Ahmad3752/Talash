@@ -111,7 +111,6 @@ const CandidatesPage = () => {
               const hasCV = c.cv_summary !== null;
               const status = hasCV ? (c.cv_summary.overall_status || 'VERIFIED') : 'PROCESSING';
               const statusColor = hasCV ? 'text-brand-green' : 'text-brand-amber';
-              const statusIcon = hasCV ? 'pulsing' : 'spinning';
               return (
               <tr 
                 key={c.id} 

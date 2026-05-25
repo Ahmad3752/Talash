@@ -44,6 +44,10 @@ services:
     name: talash-frontend
     buildCommand: cd frontend_talash && npm install && npm run build
     staticPublishPath: frontend_talash/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
         value: https://talash-backend.onrender.com

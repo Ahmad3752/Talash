@@ -10,7 +10,6 @@ import {
   Users,
   TrendingUp,
   BarChart3,
-  ChevronDown,
   Medal,
   ArrowUpRight,
   Loader2,
@@ -142,7 +141,7 @@ const DistBar = ({ label, count, max }) => {
 };
 
 /** Stat summary card */
-const StatSummaryCard = ({ label, value, icon: Icon, accent }) => (
+const StatSummaryCard = ({ label, value, icon: Icon }) => (
   <div
     className="flex items-center gap-4 p-4 rounded-xl"
     style={{
