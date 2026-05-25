@@ -10,7 +10,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY datasets/ ./datasets/
-COPY "QS World University Rankings 2025.csv" ./
+COPY ["QS World University Rankings 2025 (Top global universities).csv", "./"]
 COPY talash/ ./talash/
 
 EXPOSE 8000
