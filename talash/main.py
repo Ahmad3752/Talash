@@ -22,6 +22,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 from typing import Optional, List, Dict, Any
 import tempfile
 import os
@@ -1042,10 +1043,11 @@ async def send_recommendation_email(candidate_id: int):
         )
         
         # Send email
-        result = send_email(
+        result = await run_in_threadpool(
+            send_email,
             to_email=candidate.email,
             subject=f"CV Evaluation Recommendations — {candidate.name or 'Candidate'}",
-            html_body=html_body
+            html_body=html_body,
         )
         
         if result["success"]:

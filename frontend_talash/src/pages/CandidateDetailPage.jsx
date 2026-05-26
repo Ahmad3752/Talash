@@ -97,7 +97,9 @@ const CandidateDetailPage = () => {
     } catch (error) {
       console.error('Email error:', error);
       setEmailStatus('error');
-      toast.error('An error occurred. Please try again.');
+      toast.error(
+        error.response?.data?.detail || error.response?.data?.error || 'Email request timed out or failed.'
+      );
       setTimeout(() => setEmailStatus('idle'), 3000);
     }
   };

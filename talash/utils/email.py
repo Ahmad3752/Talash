@@ -18,6 +18,7 @@ SMTP_USERNAME = os.getenv("EMAIL_USER")
 SMTP_PASSWORD = os.getenv("EMAIL_PASSWORD")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL", SMTP_USERNAME)
 SENDER_NAME = os.getenv("SENDER_NAME", "TALASH System")
+SMTP_TIMEOUT_SECONDS = int(os.getenv("SMTP_TIMEOUT_SECONDS", "15"))
 
 
 def send_email(to_email: str, subject: str, html_body: str) -> dict:
@@ -57,7 +58,7 @@ def send_email(to_email: str, subject: str, html_body: str) -> dict:
         message.attach(html_part)
 
         # Send via SMTP
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=SMTP_TIMEOUT_SECONDS) as server:
             server.starttls()
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.sendmail(SENDER_EMAIL, to_email, message.as_string())
