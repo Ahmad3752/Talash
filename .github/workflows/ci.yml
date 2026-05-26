@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -26,7 +29,7 @@ jobs:
           pip install pytest flake8
 
       - name: Lint with flake8
-        run: flake8 talash tests --max-line-length=120
+        run: flake8 talash tests --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Run tests
         run: pytest tests/

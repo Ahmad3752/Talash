@@ -23,12 +23,12 @@ SENDER_NAME = os.getenv("SENDER_NAME", "TALASH System")
 def send_email(to_email: str, subject: str, html_body: str) -> dict:
     """
     Send an HTML email via SMTP.
-    
+
     Args:
         to_email: Recipient email address
         subject: Email subject line
         html_body: HTML email body content
-    
+
     Returns:
         {"success": True} on success
         {"success": False, "error": "..."} on failure
@@ -39,31 +39,31 @@ def send_email(to_email: str, subject: str, html_body: str) -> dict:
                 "success": False,
                 "error": "SMTP credentials not configured in environment variables"
             }
-        
+
         if not to_email:
             return {
                 "success": False,
                 "error": "Recipient email address is required"
             }
-        
+
         # Create message
         message = MIMEMultipart("alternative")
         message["Subject"] = subject
         message["From"] = f"{SENDER_NAME} <{SENDER_EMAIL}>"
         message["To"] = to_email
-        
+
         # Attach HTML body
         html_part = MIMEText(html_body, "html")
         message.attach(html_part)
-        
+
         # Send via SMTP
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.sendmail(SENDER_EMAIL, to_email, message.as_string())
-        
+
         return {"success": True}
-    
+
     except smtplib.SMTPException as e:
         return {
             "success": False,
@@ -85,31 +85,38 @@ def build_recommendation_email_html(
 ) -> str:
     """
     Build an HTML email body with CV evaluation recommendations.
-    
+
     Args:
         candidate_name: Name of the candidate
         overall_score: Overall CV score (0-100)
         overall_grade: Overall grade (EXCELLENT, GOOD, SATISFACTORY, WEAK)
         recommendations: List of recommendation strings
         summary_interpretation: Summary interpretation text
-    
+
     Returns:
         HTML string for email body
     """
+    recommendations_section = ""
     recommendations_html = ""
     if recommendations:
         recommendations_html = "<ol style='margin: 15px 0; padding-left: 25px;'>"
         for i, rec in enumerate(recommendations, 1):
             recommendations_html += f"<li style='margin-bottom: 10px; line-height: 1.5;'>{rec}</li>"
         recommendations_html += "</ol>"
-    
+        recommendations_section = (
+            '<div class="section">'
+            '<h2 class="section-title">💡 Recommendations for Improvement</h2>'
+            f"{recommendations_html}"
+            "</div>"
+        )
+
     grade_color = {
         "EXCELLENT": "#00e5cc",
         "GOOD": "#10b981",
         "SATISFACTORY": "#f59e0b",
         "WEAK": "#ef4444"
     }.get((overall_grade or "").upper(), "#00e5cc")
-    
+
     html_body = f"""
     <!DOCTYPE html>
     <html>
@@ -211,11 +218,14 @@ def build_recommendation_email_html(
                 <h1 class="title">CV Evaluation Recommendations</h1>
                 <p class="subtitle">For: {candidate_name}</p>
             </div>
-            
+
             <p>Dear {candidate_name},</p>
-            
-            <p>Thank you for submitting your CV for evaluation. We're pleased to share the results of your comprehensive CV assessment.</p>
-            
+
+            <p>
+                Thank you for submitting your CV for evaluation. We're pleased to share the results of your
+                comprehensive CV assessment.
+            </p>
+
             <div class="section">
                 <h2 class="section-title">📊 Your Overall Assessment</h2>
                 <div class="score-details">
@@ -229,24 +239,30 @@ def build_recommendation_email_html(
                     </div>
                 </div>
             </div>
-            
-            {f'<div class="section">' + f'<h2 class="section-title">💡 Recommendations for Improvement</h2>' + recommendations_html + '</div>' if recommendations else ''}
-            
+
+            {recommendations_section}
+
             <div class="section">
                 <h2 class="section-title">📝 Assessment Summary</h2>
                 <p>{summary_interpretation}</p>
             </div>
-            
-            <p>We believe these insights will help you strengthen your profile and demonstrate your achievements more effectively. If you have any questions about this assessment, please feel free to reach out.</p>
-            
+
+            <p>
+                We believe these insights will help you strengthen your profile and demonstrate your achievements more
+                effectively. If you have any questions about this assessment, please feel free to reach out.
+            </p>
+
             <p>Best regards,<br><strong>TALASH Evaluation Team</strong></p>
-            
+
             <div class="footer">
-                <p>This is an automated email from the TALASH CV Evaluation System. Please do not reply directly to this email.</p>
+                <p>
+                    This is an automated email from the TALASH CV Evaluation System.
+                    Please do not reply directly to this email.
+                </p>
             </div>
         </div>
     </body>
     </html>
     """
-    
+
     return html_body
