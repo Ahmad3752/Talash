@@ -108,7 +108,6 @@ def load_core(filepath: str) -> pd.DataFrame:
 
 
 def _ensure_datasets_loaded():
-    global _DATASET_CACHE
     if _DATASET_CACHE["loaded"]:
         return
     print("  Loading research datasets (cached globally)...")
