@@ -2,7 +2,7 @@
 
 @theme {
   --color-brand-bg: rgb(10 15 30);
-  --color-brand-teal: rgb(0 229 204);
+  --color-brand-teal: rgb(0 255 204);
   --color-brand-green: rgb(16 185 129);
   --color-brand-amber: rgb(245 158 11);
   --color-brand-orange: rgb(249 115 22);
@@ -20,7 +20,8 @@
   --bg-border:      #30363d;
   --text-primary:   #ffffff;
   --text-secondary: #8b949e;
-  --accent:         #00e5cc;
+  --text-muted:     #6e7681;
+  --accent:         #00ffcc;
   --accent-hover:   #00b8a4;
   --success:        #22c55e;
   --warning:        #f59e0b;
@@ -109,4 +110,44 @@
 .theme-toggle:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.cv-processing-spinner {
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(0, 255, 204, 0.18);
+  border-top-color: #00ffcc;
+  border-radius: 9999px;
+  animation: cv-spin 900ms linear infinite;
+  box-shadow: 0 0 24px rgba(0, 255, 204, 0.18);
+}
+
+.cv-status-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: cv-spin 800ms linear infinite;
+}
+
+.cv-processing-pulse {
+  animation: cv-pulse 1500ms ease-in-out infinite;
+}
+
+@keyframes cv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cv-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 204, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 0 12px rgba(0, 255, 204, 0);
+  }
 }

@@ -5,7 +5,7 @@ export default {
       colors: {
         brand: {
           bg: '#0a0f1e',
-          teal: '#00e5cc',
+          teal: '#00ffcc',
           green: '#10b981',
           amber: '#f59e0b',
           orange: '#f97316',
