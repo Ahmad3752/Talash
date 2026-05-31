@@ -23,6 +23,9 @@ load_dotenv()
 _REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 _TTL       = int(os.getenv("REDIS_CV_TTL_SECONDS", 0))   # 0 = no expiry
 
+CV_HASH_PREFIX  = "cv_hash:"
+CV_HASH_PATTERN = f"{CV_HASH_PREFIX}*"
+
 _client: redis.Redis | None = None
 
 
@@ -46,7 +49,7 @@ def _hash_cv(text: str) -> str:
 
 
 def _key(digest: str) -> str:
-    return f"cv_hash:{digest}"
+    return f"{CV_HASH_PREFIX}{digest}"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -105,6 +108,43 @@ def invalidate(cv_text: str) -> None:
         _get_client().delete(_key(digest))
     except Exception as e:
         print(f"  ⚠️  Redis delete failed: {e}")
+
+
+def count_cv_hash_cache(batch_size: int = 500) -> int:
+    """
+    Count only CV deduplication keys in Redis.
+
+    Uses SCAN via scan_iter so this remains safe on Redis instances that also
+    contain unrelated application/session/cache data.
+    """
+    client = _get_client()
+    return sum(
+        1
+        for _ in client.scan_iter(match=CV_HASH_PATTERN, count=batch_size)
+    )
+
+
+def clear_cv_hash_cache(batch_size: int = 500) -> int:
+    """
+    Delete only CV deduplication keys from Redis and return the deleted count.
+
+    This intentionally targets CV_HASH_PATTERN (cv_hash:*) instead of FLUSHDB,
+    so unrelated Redis keys are preserved.
+    """
+    client = _get_client()
+    deleted = 0
+    batch: list[str] = []
+
+    for key in client.scan_iter(match=CV_HASH_PATTERN, count=batch_size):
+        batch.append(key)
+        if len(batch) >= batch_size:
+            deleted += client.delete(*batch)
+            batch.clear()
+
+    if batch:
+        deleted += client.delete(*batch)
+
+    return deleted
 
 
 def ping() -> bool:
