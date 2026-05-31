@@ -18,7 +18,7 @@ Fixes in this revision:
      was duplicating all_results 4× and breaking the summarizer.
 """
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Header
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -26,6 +26,7 @@ from starlette.concurrency import run_in_threadpool
 from typing import Optional, List, Dict, Any
 import tempfile
 import os
+import secrets
 from datetime import datetime
 import json
 import traceback
@@ -437,6 +438,14 @@ class UploadResponseSchema(BaseModel):
     status: str
 
 
+class CacheResetResponseSchema(BaseModel):
+    pattern: str
+    matched_before: int
+    deleted: int
+    matched_after: int
+    status: str
+
+
 # ============================================================================
 # HELPERS — publication serialization and candidate detail builder
 # ============================================================================
@@ -609,6 +618,45 @@ async def health_check():
         "redis":    "connected" if redis_ok else "error",
     }
  
+
+@app.post(
+    "/admin/cache/cv-hashes/reset",
+    response_model=CacheResetResponseSchema,
+    tags=["Admin"],
+)
+async def reset_cv_hash_cache(x_admin_token: Optional[str] = Header(default=None)):
+    """
+    Clear only Redis CV hash cache keys (cv_hash:*).
+
+    This endpoint is intended as a temporary production escape hatch for hosts
+    without shell access. It is disabled unless CV_CACHE_RESET_TOKEN is set.
+    """
+    expected_token = os.getenv("CV_CACHE_RESET_TOKEN")
+    if not expected_token:
+        raise HTTPException(
+            status_code=503,
+            detail="CV cache reset endpoint is disabled. Set CV_CACHE_RESET_TOKEN to enable it.",
+        )
+
+    if not x_admin_token or not secrets.compare_digest(x_admin_token, expected_token):
+        raise HTTPException(status_code=403, detail="Invalid admin token")
+
+    try:
+        from .redis_cache import CV_HASH_PATTERN, clear_cv_hash_cache, count_cv_hash_cache
+
+        matched_before = count_cv_hash_cache()
+        deleted = clear_cv_hash_cache()
+        matched_after = count_cv_hash_cache()
+        return CacheResetResponseSchema(
+            pattern=CV_HASH_PATTERN,
+            matched_before=matched_before,
+            deleted=deleted,
+            matched_after=matched_after,
+            status="cleared",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reset CV hash cache: {e}")
+
 
 
 @app.post("/upload", response_model=UploadResponseSchema, tags=["Upload"])
