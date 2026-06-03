@@ -5,6 +5,7 @@ import re
 from typing import Type, TypeVar, Any, Union
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
 
 load_dotenv()
 
@@ -23,7 +24,15 @@ class LLMClient:
 
         self.groq_index   = 0
         self.gemini_index = 0
-        self.openrouter_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_KEY")
+        self.openrouter_key = os.getenv("OPENROUTER_KEY") or os.getenv("OPENROUTER_API_KEY")
+        self.openrouter_model = "openrouter/openai/gpt-4o-mini"
+        self.llm = ChatOpenAI(
+            model="openai/gpt-4o-mini",
+            api_key=self.openrouter_key or "missing-openrouter-key",
+            base_url="https://openrouter.ai/api/v1",
+            temperature=0.7,
+            max_tokens=7000,
+        )
 
     def _get_next_groq_key(self):
         if not self.groq_keys:
@@ -55,7 +64,7 @@ class LLMClient:
         self,
         user_prompt: Union[str, list],
         system_prompt: str = None,
-        provider: str = "groq",
+        provider: str = "openrouter",
     ):
         """
         Chat completion with automatic provider rotation and fallback.
@@ -77,11 +86,11 @@ class LLMClient:
             model   = "gemini/gemini-2.0-flash"
             api_key = self._get_next_gemini_key()
         else:  # provider == "openrouter"
-            model   = "openrouter/auto"
+            model   = self.openrouter_model
             api_key = self.openrouter_key
 
         try:
-            kwargs = dict(model=model, messages=messages, temperature=0.7)
+            kwargs = dict(model=model, messages=messages, temperature=0.7, max_tokens=7000)
             if api_key:
                 kwargs["api_key"] = api_key
             if provider == "openrouter":
@@ -118,14 +127,14 @@ class LLMClient:
         if not self.openrouter_key:
             raise ValueError("OPENROUTER_API_KEY or OPENROUTER_KEY not found in environment")
 
-        for model in ["openrouter/openai/gpt-4o", "openrouter/auto"]:
+        for model in [self.openrouter_model, "openrouter/auto"]:
             try:
                 response = litellm.completion(
                     model=model,
                     messages=[{"role": "user", "content": prompt}],
                     api_key=self.openrouter_key,
                     base_url="https://openrouter.ai/api/v1",
-                    max_tokens=1000,
+                    max_tokens=7000,
                 )
                 content  = response.choices[0].message.content
                 json_str = re.sub(
@@ -138,6 +147,11 @@ class LLMClient:
                 print(f" {model} structured call failed: {e}")
                 if model == "openrouter/auto":
                     raise e
+
+    def structured_invoke(self, prompt: str, response_model: Type[T]) -> T:
+        """Invoke the shared LangChain model with Pydantic structured output."""
+        structured_llm = self.llm.with_structured_output(response_model)
+        return structured_llm.invoke(prompt)
 
     # ------------------------------------------------------------------
     # Helpers
@@ -175,9 +189,13 @@ class LLMClient:
 _client = LLMClient()
 
 
-def litellm_chat(user_prompt, system_prompt=None, provider="groq"):
+def litellm_chat(user_prompt, system_prompt=None, provider="openrouter"):
     return _client.litellm_chat(user_prompt, system_prompt, provider)
 
 
 def openrouter_structured_call(prompt: str, response_model: Type[T]) -> T:
     return _client.openrouter_structured_call(prompt, response_model)
+
+
+def structured_invoke(prompt: str, response_model: Type[T]) -> T:
+    return _client.structured_invoke(prompt, response_model)

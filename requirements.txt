@@ -12,7 +12,7 @@ redis==7.4.0
 litellm==1.83.14
 langchain-core
 langchain-openai
-langgraph
+langgraph==1.1.6
 
 # PDF and data processing
 PyMuPDF==1.23.5

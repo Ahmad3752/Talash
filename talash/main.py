@@ -18,7 +18,7 @@ Fixes in this revision:
      was duplicating all_results 4× and breaking the summarizer.
 """
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Header
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Header, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -43,6 +43,9 @@ from .db_models import (
     SkillAlignmentScore, TopicVariabilityScore, CoauthorAnalysisScore,
     CVSummary,
 )
+from .developer import models as developer_models  # noqa: F401 - registers developer tables
+from .developer.router import router as developer_router
+from .developer.validation import normalize_upload_track
 from .db_connect import init_db, get_session, engine
 from .utils.email import send_email, build_recommendation_email_html
 
@@ -81,6 +84,16 @@ frontend_urls = [
     for origin in os.getenv("FRONTEND_URL", "http://localhost:5173").split(",")
     if origin.strip()
 ]
+for local_origin in (
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+):
+    if local_origin not in frontend_urls:
+        frontend_urls.append(local_origin)
 
 app.add_middleware(
     CORSMiddleware,
@@ -89,6 +102,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(developer_router)
 
 
 # ============================================================================
@@ -431,6 +446,8 @@ class CandidateListSchema(BaseModel):
 
 class UploadResponseSchema(BaseModel):
     message: str
+    evaluation_track: str
+    developer_role: Optional[str] = None
     candidates_count: int
     new_count: int
     existing_count: int
@@ -568,13 +585,50 @@ def _count_cvs_in_pdf(pdf_path: str) -> List[Dict[str, Any]]:
 # BACKGROUND TASK
 # ============================================================================
 
-async def process_pdf_background(pdf_path: str):
+async def process_pdf_background(
+    pdf_path: str,
+    evaluation_track: str = "researcher",
+    developer_role: Optional[str] = None,
+):
     """Background task — runs the full pipeline from runner.py."""
     try:
         print("\n" + "=" * 60)
         print("BACKGROUND PROCESSING STARTED")
+        print(f"Evaluation track: {evaluation_track}")
+        if developer_role:
+            print(f"Developer role: {developer_role}")
         print("=" * 60)
         results = await runner.process_all_cvs_sequential(pdf_path)
+        if evaluation_track == "developer":
+            from .developer.service import run_developer_profile_extraction
+
+            print("\n" + "-" * 60)
+            print("DEVELOPER EVALUATION")
+            print("-" * 60)
+            developer_results = await run_in_threadpool(
+                run_developer_profile_extraction,
+                results,
+                developer_role,
+            )
+            print(f"\nDeveloper profile extraction complete: {len(developer_results)} candidate(s)")
+            for item in developer_results:
+                print(
+                    "  "
+                    f"{item.get('candidate_id')}: {item.get('status')}"
+                    f" profile={item.get('developer_profile_id', '-')}"
+                )
+                if item.get("overall_score") is not None:
+                    print(
+                        "     "
+                        f"Developer Score: {item.get('overall_score')}/100"
+                        f" [{item.get('overall_grade', 'N/A')}]"
+                    )
+                for module in item.get("module_scores", []):
+                    print(
+                        "     "
+                        f"- {module.get('name')}: {module.get('score')}/{module.get('max')}"
+                        f" [{module.get('grade')}]"
+                    )
         print(f"\n✅ Background processing complete: {len(results)} candidate(s)")
     except Exception as e:
         print(f"\n❌ ERROR in background processing: {str(e)}")
@@ -662,6 +716,8 @@ async def reset_cv_hash_cache(x_admin_token: Optional[str] = Header(default=None
 @app.post("/upload", response_model=UploadResponseSchema, tags=["Upload"])
 async def upload_pdf(
     file: UploadFile = File(...),
+    evaluation_track: str = Form("researcher"),
+    developer_role: Optional[str] = Form(None),
     background_tasks: BackgroundTasks = None,
 ):
     """
@@ -673,6 +729,11 @@ async def upload_pdf(
     - The response immediately reports how many CVs are new vs already stored.
     - Extraction + scoring runs in the background.
     """
+    try:
+        evaluation_track, developer_role = normalize_upload_track(evaluation_track, developer_role)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
 
@@ -706,24 +767,30 @@ async def upload_pdf(
             "cv_id":   c["cv_id"],
             "status":  "new — will be processed" if c["is_new"] else "already in DB — will be refreshed",
             "preview": c["preview"],
+            "evaluation_track": evaluation_track,
+            "developer_role": developer_role,
         }
         for c in cv_infos
     ]
 
     # Queue the heavy work
     if background_tasks is not None:
-        background_tasks.add_task(process_pdf_background, tmp_path)
+        background_tasks.add_task(process_pdf_background, tmp_path, evaluation_track, developer_role)
     else:
-        asyncio.create_task(process_pdf_background(tmp_path))
+        asyncio.create_task(process_pdf_background(tmp_path, evaluation_track, developer_role))
 
+    track_label = "developer" if evaluation_track == "developer" else "researcher"
+    role_suffix = f" ({developer_role.replace('_', ' ')})" if developer_role else ""
     status_msg = (
         f"PDF uploaded. {candidates_count} CV(s) detected "
         f"({new_count} new, {existing_count} already in DB). "
-        "Processing queued."
+        f"{track_label.title()}{role_suffix} processing queued."
     )
 
     return UploadResponseSchema(
         message=status_msg,
+        evaluation_track=evaluation_track,
+        developer_role=developer_role,
         candidates_count=candidates_count,
         new_count=new_count,
         existing_count=existing_count,

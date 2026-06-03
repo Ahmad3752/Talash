@@ -4,7 +4,7 @@ import client from '../api/client';
 import toast from 'react-hot-toast';
 import { 
   ArrowLeft, Mail, Phone, Award, Briefcase, GraduationCap, 
-  BarChart3, FileText, Clock, Loader2, CheckCircle, AlertCircle, Send
+  BarChart3, FileText, Clock, Loader2, CheckCircle, AlertCircle, Send, Code2
 } from 'lucide-react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer
@@ -16,10 +16,12 @@ import SkeletonLoader from '../components/SkeletonLoader';
 import ScoreCard from '../components/ScoreCard';
 import BadgeFlag from '../components/BadgeFlag';
 import SkillsTab from '../components/SkillsTab';
+import DeveloperEvaluationView from '../components/DeveloperEvaluationView';
 
 const CandidateDetailPage = () => {
   const { id } = useParams();
   const [candidate, setCandidate] = useState(null);
+  const [developerScores, setDeveloperScores] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('education');
   const [emailStatus, setEmailStatus] = useState('idle'); // idle | fetching | sending | sent | no_email | error
@@ -27,8 +29,15 @@ const CandidateDetailPage = () => {
   useEffect(() => {
     const fetchCandidate = async () => {
       try {
-        const response = await client.get(`/candidates/${id}`);
-        setCandidate(response.data);
+        const [candidateResponse, developerResponse] = await Promise.all([
+          client.get(`/candidates/${id}`),
+          client.get(`/developer/candidates/${id}/scores`).catch((error) => {
+            if (error?.response?.status === 404) return { data: null };
+            throw error;
+          }),
+        ]);
+        setCandidate(candidateResponse.data);
+        setDeveloperScores(developerResponse.data);
         setLoading(false);
       } catch (error) {
         console.error('Fetch failed:', error);
@@ -160,16 +169,35 @@ const CandidateDetailPage = () => {
   if (!candidate) return <div className="p-10 text-center">Candidate not found</div>;
 
   const summary = candidate.cv_summary;
+  const hasDeveloperSummary = Boolean(developerScores?.summary);
+  const isDeveloperView = hasDeveloperSummary;
+  const developerSummary = developerScores?.summary;
 
-  // Radar Data
-  const radarData = [
-    { subject: 'Education', A: summary?.education_score || 0, fullMark: 10 },
-    { subject: 'Research', A: summary?.research_score || 0, fullMark: 10 },
-    { subject: 'Experience', A: summary?.experience_score || 0, fullMark: 10 },
-    { subject: 'TVS', A: summary?.tvs_score || 0, fullMark: 10 },
-  ];
+  const safeJson = (value, fallback = []) => {
+    if (!value) return fallback;
+    if (Array.isArray(value) || typeof value === 'object') return value;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  };
+  const developerModules = safeJson(developerSummary?.module_summary, []);
 
-  const tabs = [
+  const radarData = isDeveloperView
+    ? developerModules.map((module) => ({
+        subject: module.name?.replace(' & ', ' ') || module.key,
+        A: module.normalized_score || ((module.score || 0) / (module.max || 1)) * 100,
+        fullMark: 100,
+      }))
+    : [
+        { subject: 'Education', A: summary?.education_score || 0, fullMark: 10 },
+        { subject: 'Research', A: summary?.research_score || 0, fullMark: 10 },
+        { subject: 'Experience', A: summary?.experience_score || 0, fullMark: 10 },
+        { subject: 'TVS', A: summary?.tvs_score || 0, fullMark: 10 },
+      ];
+
+  const researcherTabs = [
     { id: 'education', label: 'Education', icon: GraduationCap },
     { id: 'experience', label: 'Experience', icon: Briefcase },
     { id: 'research', label: 'Research', icon: Award },
@@ -177,9 +205,13 @@ const CandidateDetailPage = () => {
     { id: 'tvs_ccs', label: 'TVS/CCS', icon: BarChart3 },
     { id: 'summary', label: 'Summary', icon: FileText },
   ];
+  const tabs = isDeveloperView
+    ? [{ id: 'developer', label: 'Developer', icon: Code2 }]
+    : researcherTabs;
+  const displayedActiveTab = isDeveloperView ? 'developer' : activeTab;
 
   const renderTabContent = () => {
-    switch (activeTab) {
+    switch (displayedActiveTab) {
       case 'education': {
         const eduScores = candidate.education_scores?.[0];
         const eduReasons = eduScores?.reasons ? JSON.parse(eduScores.reasons) : {};
@@ -402,6 +434,11 @@ const CandidateDetailPage = () => {
       case 'skills': {
         return <SkillsTab candidate={candidate} />;
       }
+
+      case 'developer': {
+        return <DeveloperEvaluationView developerScores={developerScores} />;
+      }
+
 
       case 'tvs_ccs': {
         const tvsScores = candidate.topic_variability_scores?.[0];
@@ -799,18 +836,23 @@ const CandidateDetailPage = () => {
 
             <div className="pt-6 border-t border-white/5 flex items-center justify-between">
               <div className="text-left">
-                <div className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Overall Status</div>
+                <div className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
+                  {isDeveloperView ? 'Developer Status' : 'Overall Status'}
+                </div>
                 <div className="flex items-center gap-2 text-brand-green font-bold text-sm uppercase">
-                  <div className="w-2 h-2 rounded-full bg-brand-green animate-pulse" /> {summary?.overall_status || 'VERIFIED'}
+                  <div className="w-2 h-2 rounded-full bg-brand-green animate-pulse" />
+                  {isDeveloperView ? 'DEVELOPER SCORED' : (summary?.overall_status || 'VERIFIED')}
                 </div>
               </div>
-              <GradeBadge grade={summary?.overall_grade} />
+              <GradeBadge grade={isDeveloperView ? developerSummary?.overall_grade : summary?.overall_grade} />
             </div>
           </div>
 
           <div className="glass-card p-6">
-            <h3 className="text-sm font-mono uppercase tracking-widest mb-8 text-center" style={{ color: 'var(--text-muted)' }}>Score Vector</h3>
-            {!summary ? (
+            <h3 className="text-sm font-mono uppercase tracking-widest mb-8 text-center" style={{ color: 'var(--text-muted)' }}>
+              {isDeveloperView ? 'Developer Modules' : 'Score Vector'}
+            </h3>
+            {!summary && !isDeveloperView ? (
               <div className="text-center py-10">
                 <Clock className="w-10 h-10 text-brand-amber mx-auto mb-3 animate-spin-slow" />
                 <p className="text-brand-amber font-mono text-xs">SCORING IN PROGRESS...</p>
@@ -833,8 +875,14 @@ const CandidateDetailPage = () => {
               </div>
             )}
             <div className="mt-4 text-center">
-              <div className="text-4xl font-black font-mono text-brand-teal">{summary?.overall_score?.toFixed(1) || '--'}</div>
-              <div className="text-[10px] font-mono uppercase tracking-tighter" style={{ color: 'var(--text-muted)' }}>Weighted Aggregate</div>
+              <div className="text-4xl font-black font-mono text-brand-teal">
+                {isDeveloperView
+                  ? Number(developerSummary?.overall_score || 0).toFixed(1)
+                  : summary?.overall_score?.toFixed(1) || '--'}
+              </div>
+              <div className="text-[10px] font-mono uppercase tracking-tighter" style={{ color: 'var(--text-muted)' }}>
+                {isDeveloperView ? 'Developer Aggregate' : 'Weighted Aggregate'}
+              </div>
             </div>
           </div>
         </div>
@@ -849,12 +897,12 @@ const CandidateDetailPage = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`
                     flex-1 flex items-center justify-center gap-2 py-5 text-sm font-bold transition-all
-                    ${activeTab === tab.id 
+                    ${displayedActiveTab === tab.id 
                       ? 'text-brand-teal bg-brand-teal/5 border-b-2 border-brand-teal' 
                       : 'hover:bg-white/5'}`}
-                  style={activeTab === tab.id ? {} : { color: 'var(--text-muted)' }}
-                  onMouseEnter={(e) => { if (activeTab !== tab.id) e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                  onMouseLeave={(e) => { if (activeTab !== tab.id) e.currentTarget.style.color = 'var(--text-muted)'; }}
+                  style={displayedActiveTab === tab.id ? {} : { color: 'var(--text-muted)' }}
+                  onMouseEnter={(e) => { if (displayedActiveTab !== tab.id) e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                  onMouseLeave={(e) => { if (displayedActiveTab !== tab.id) e.currentTarget.style.color = 'var(--text-muted)'; }}
                 >
                   <tab.icon className="w-4 h-4" />
                   <span className="hidden md:inline">{tab.label}</span>
@@ -863,7 +911,7 @@ const CandidateDetailPage = () => {
             </div>
             
             <div className="p-8">
-              {!summary ? (
+              {!summary && displayedActiveTab !== 'developer' ? (
                 <div className="flex flex-col items-center justify-center py-40">
                   <Loader2 className="w-12 h-12 text-brand-teal animate-spin mb-4" />
                   <h3 className="text-xl font-syne mb-2" style={{ color: 'var(--text-primary)' }}>Analyzing Profile...</h3>

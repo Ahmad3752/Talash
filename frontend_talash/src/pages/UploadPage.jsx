@@ -7,6 +7,23 @@ import toast from 'react-hot-toast';
 const POLL_INTERVAL_MS = 3000;
 const RESET_UPLOAD_DELAY_MS = 2500;
 
+const DEVELOPER_ROLES = [
+  { value: 'backend', label: 'Backend Developer' },
+  { value: 'frontend', label: 'Frontend Developer' },
+  { value: 'full_stack', label: 'Full Stack Developer' },
+  { value: 'mobile', label: 'Mobile Developer' },
+  { value: 'ai_ml', label: 'AI/ML Engineer' },
+  { value: 'devops', label: 'DevOps Engineer' },
+  { value: 'data_engineer', label: 'Data Engineer' },
+  { value: 'qa_automation', label: 'QA Automation Engineer' },
+];
+
+const getTrackLabel = (track) => (track === 'developer' ? 'Developer' : 'Researcher');
+
+const getDeveloperRoleLabel = (role) => (
+  DEVELOPER_ROLES.find((item) => item.value === role)?.label || 'Developer Role'
+);
+
 const formatScore = (score) => {
   const value = Number(score);
   return Number.isFinite(value) ? value.toFixed(1) : '--';
@@ -42,6 +59,8 @@ const UploadPage = () => {
   const [processingFile, setProcessingFile] = useState(null);
   const [processingError, setProcessingError] = useState('');
   const [isDragActive, setIsDragActive] = useState(false);
+  const [evaluationTrack, setEvaluationTrack] = useState('researcher');
+  const [developerRole, setDeveloperRole] = useState('backend');
   const fileInputRef = useRef(null);
   const pollingTimerRef = useRef(null);
   const resetTimerRef = useRef(null);
@@ -109,6 +128,8 @@ const UploadPage = () => {
       name: null,
       score: null,
       grade: null,
+      evaluationTrack: candidate.evaluation_track || uploadData?.evaluation_track || evaluationTrack,
+      developerRole: candidate.developer_role || uploadData?.developer_role || null,
     }));
   };
 
@@ -135,7 +156,7 @@ const UploadPage = () => {
         const response = await client.get('/candidates');
         const candidates = Array.isArray(response.data) ? response.data : [];
 
-        const nextEntries = trackedCandidatesRef.current.map((entry) => {
+        const nextEntries = await Promise.all(trackedCandidatesRef.current.map(async (entry) => {
           const candidate = candidates.find((item) => item.candidate_id === entry.cv_id);
 
           if (!candidate) {
@@ -155,14 +176,42 @@ const UploadPage = () => {
           }
 
           if (candidate.cv_summary) {
+            let completedScore = getCandidateScore(candidate);
+            let completedGrade = candidate.cv_summary.overall_grade;
+
+            if (entry.evaluationTrack === 'developer') {
+              const developerStatus = await client
+                .get(`/developer/candidates/${candidate.id}/status`)
+                .then((statusResponse) => statusResponse.data)
+                .catch(() => null);
+
+              if (developerStatus?.status !== 'complete') {
+                return {
+                  ...entry,
+                  status: 'processing',
+                  dbId: candidate.id,
+                  name: candidate.name || entry.name,
+                  email: candidate.email || entry.email,
+                };
+              }
+
+              const developerScores = await client
+                .get(`/developer/candidates/${candidate.id}/scores`)
+                .then((scoresResponse) => scoresResponse.data)
+                .catch(() => null);
+
+              completedScore = developerScores?.summary?.overall_score ?? completedScore;
+              completedGrade = developerScores?.summary?.overall_grade ?? completedGrade;
+            }
+
             return {
               ...entry,
               status: 'verified',
               dbId: candidate.id,
               name: candidate.name || entry.name,
               email: candidate.email || entry.email,
-              score: getCandidateScore(candidate),
-              grade: candidate.cv_summary.overall_grade,
+              score: completedScore,
+              grade: completedGrade,
             };
           }
 
@@ -173,7 +222,7 @@ const UploadPage = () => {
             name: candidate.name || entry.name,
             email: candidate.email || entry.email,
           };
-        });
+        }));
 
         updateTrackedCandidates(nextEntries);
 
@@ -229,6 +278,10 @@ const UploadPage = () => {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('evaluation_track', evaluationTrack);
+    if (evaluationTrack === 'developer') {
+      formData.append('developer_role', developerRole);
+    }
 
     try {
       const response = await client.post('/upload', formData, {
@@ -307,6 +360,63 @@ const UploadPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
+          <div className="glass-card p-5 mb-6">
+            <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div className="min-w-0">
+                <div className="text-xs font-mono uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>
+                  Evaluation Track
+                </div>
+                <div className="inline-flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
+                  {['researcher', 'developer'].map((track) => {
+                    const isSelected = evaluationTrack === track;
+
+                    return (
+                      <button
+                        key={track}
+                        type="button"
+                        disabled={isInteractionLocked}
+                        onClick={() => setEvaluationTrack(track)}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+                          isSelected
+                            ? 'bg-brand-teal text-brand-bg'
+                            : 'text-brand-teal hover:bg-brand-teal/10 disabled:hover:bg-transparent'
+                        } disabled:cursor-not-allowed disabled:opacity-50`}
+                      >
+                        {getTrackLabel(track)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {evaluationTrack === 'developer' && (
+                <div className="w-full md:w-72">
+                  <label
+                    htmlFor="developer-role"
+                    className="block text-xs font-mono uppercase tracking-widest mb-3"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    Developer Role
+                  </label>
+                  <select
+                    id="developer-role"
+                    value={developerRole}
+                    disabled={isInteractionLocked}
+                    onChange={(event) => setDeveloperRole(event.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold outline-none transition-colors focus:border-brand-teal disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {DEVELOPER_ROLES.map((role) => (
+                      <option key={role.value} value={role.value}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div 
             onDragOver={(e) => {
               e.preventDefault();
@@ -403,7 +513,10 @@ const UploadPage = () => {
                 </div>
                 <div>
                   <div className="font-bold" style={{ color: 'var(--text-primary)' }}>{file.name}</div>
-                  <div className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{(file.size / 1024).toFixed(1)} KB</div>
+                  <div className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+                    {(file.size / 1024).toFixed(1)} KB - {getTrackLabel(evaluationTrack)}
+                    {evaluationTrack === 'developer' ? ` - ${getDeveloperRoleLabel(developerRole)}` : ''}
+                  </div>
                 </div>
               </div>
               <button 
@@ -443,6 +556,15 @@ const UploadPage = () => {
                   <span className="text-xs font-mono uppercase" style={{ color: 'var(--text-muted)' }}>Existing Updated</span>
                   <span className="text-2xl font-mono font-bold text-brand-amber">{batchSummary.existing_count ?? 0}</span>
                 </div>
+                <div className="flex justify-between items-end border-b border-white/5 pb-4 gap-4">
+                  <span className="text-xs font-mono uppercase" style={{ color: 'var(--text-muted)' }}>Track</span>
+                  <span className="text-sm font-bold text-right" style={{ color: 'var(--text-primary)' }}>
+                    {getTrackLabel(batchSummary.evaluation_track)}
+                    {batchSummary.evaluation_track === 'developer' && batchSummary.developer_role
+                      ? ` - ${getDeveloperRoleLabel(batchSummary.developer_role)}`
+                      : ''}
+                  </span>
+                </div>
 
                 {trackedCandidates.length > 0 && (
                   <div className="space-y-3">
@@ -462,6 +584,12 @@ const UploadPage = () => {
                               </div>
                               <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                                 {entry.name || entry.preview || entry.cv_id}
+                              </div>
+                              <div className="text-[10px] font-mono uppercase tracking-widest text-brand-teal mt-1">
+                                {getTrackLabel(entry.evaluationTrack)}
+                                {entry.evaluationTrack === 'developer' && entry.developerRole
+                                  ? ` - ${getDeveloperRoleLabel(entry.developerRole)}`
+                                  : ''}
                               </div>
                             </div>
                             <div
